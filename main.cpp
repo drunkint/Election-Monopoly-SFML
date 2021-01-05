@@ -4,12 +4,13 @@
 #include <string>
 #include <ctime>
 
+// 有看到嗎~
+
 enum State { // 這告訴我們現在在哪個狀況下 然後main 就會跑相對應的程式
     MENU, 
     NAME,
     DICE, // when the first player rolls the dice
     CITY, // should be <location type 1> state_1
-    MIAO_LI,
     NEWS,
     WAIT,
     END,
@@ -21,16 +22,22 @@ const int kWindowHeight = 1000;
 
 // Game Setting Consts
 const int kPlayerNum = 2;
+const int kTotalRounds = 5;
 const int kLocationIndexNum = 28;
-const int kMoneyEachRound = 200000;
 const int kStartMoney = 20000000;
-const int kBribeNum = 5;
-const int kStayNum = 3;
+const int kBribeNum = 10; // The starting value of bribe_day_
+const int kMiaoliNum = 3; // The starting value of bribe_day_
+const int kJailNum = 3;
+const int kHospitalNum = 3;
 
-// Spend Money consts
+// Const Earn Money Consts
+const int kMoneyEachRound = 200000;
+const int kMoneyEarnedAtStart = 500000;
+
+// Const Spend Money Consts
 const int kBaiPiaoSpendMoney = 100000;
 
-// Random consts
+// Random Consts
 const int kDiceMin = 2;
 const int kDiceMax = 12;
 const int kDiceRange = kDiceMax - kDiceMin;
@@ -63,7 +70,9 @@ class Player {
   int money_;
   int votes_;
   int bribe_day_; // if the player meets the police when bribe_day_ > 0, he gets caught
-  int stay_day_; // the days left until the player could go out of jail/hospital
+  int miaoli_day_; // the days left until the player could go out of miaoli
+  int jail_day_; // the days left until the player could go out of jail
+  int hospital_day_; // the days left until the player could go out of hospital
 
   public:
   // Constructors and Destructors
@@ -75,7 +84,9 @@ class Player {
     money_ = kStartMoney;
     votes_ = 0;
     bribe_day_ = 0;
-    stay_day_ = 0;
+    miaoli_day_ = 0;
+    jail_day_ = 0;
+    hospital_day_ = 0;
   }
 
   // Accessors and Mutators
@@ -113,16 +124,41 @@ class Player {
     else
       bribe_day_ = std::max(bribe_day_ - 1, 0);
   }
-  bool get_is_bribed() { // When the police wants to check if you have bribed
+  bool get_is_still_bribed() { // When the police wants to check if you have bribed
     return (bribe_day_ > 0) ? true : false;
   }
   
-  // Stay
-  void update_stay_day() { // updates the days left until freedom
-    stay_day_ = std::max(bribe_day_ - 1, 0);
+  // miaoli
+  void update_miaoli_day(bool is_today_miaoli_day = false) { // updates the days left until freedom
+    if (is_today_miaoli_day)
+      miaoli_day_ = kMiaoliNum;
+    else
+      miaoli_day_ = std::max(miaoli_day_ - 1, 0);
   }
-  bool get_is_staying() {
-    return (stay_day_ > 0) ? true : false;
+  bool get_is_still_in_miaoli() {
+    return (miaoli_day_ > 0) ? true : false;
+  }
+
+  // Jail
+  void update_jail_day(bool is_today_jail_day = false) { // updates the days left until freedom
+    if (is_today_jail_day)
+      jail_day_ = kJailNum;
+    else
+      jail_day_ = std::max(jail_day_ - 1, 0);
+  }
+  bool get_is_still_in_jail() {
+    return (jail_day_ > 0) ? true : false;
+  }
+
+  // Hospital
+  void update_hospital_day(bool is_today_hospital_day = false) { // updates the days left until freedom
+    if (is_today_hospital_day)
+      hospital_day_ = kHospitalNum;
+    else
+      hospital_day_ = std::max(hospital_day_ - 1, 0);
+  }
+  bool get_is_still_in_hospital() {
+    return (miaoli_day_ > 0) ? true : false;
   }
 
 };
@@ -208,11 +244,25 @@ int main (int argc, char** argv) {
 
   // Dice Text
   sf::Text dice_text;
-  BuildText(dice_text, big_font, "", 25, sf::Color::White, sf::Text::Regular, 500, 500);
+  BuildText(dice_text, big_font, "", 25, sf::Color::White, sf::Text::Regular, 500, 400);
 
   // Tell Location Text
   sf::Text tell_location_text;
   BuildText(tell_location_text, big_font, "", 25, sf::Color::White, sf::Text::Regular, 500, 500);
+
+  // Miao Li Text (optional)
+  sf::Text miaoli_text;
+  BuildText(miaoli_text, big_font, "", 25, sf::Color::White, sf::Text::Regular, 500, 500);
+
+  // Jail Text (optional)
+  sf::Text jail_text;
+  BuildText(jail_text, big_font, "", 25, sf::Color::White, sf::Text::Regular, 800, 500);
+
+  // Hospital Text (optional)
+  sf::Text hospital_text;
+  BuildText(hospital_text, big_font, "", 25, sf::Color::White, sf::Text::Regular, 800, 500);
+
+
 // BackGround Setup
 
   //暫時地圖
@@ -268,9 +318,10 @@ int main (int argc, char** argv) {
   }
 
 
-  int current_id = 0;
-  state = MENU;
-  int current_round = 0;
+// Game Loop
+  int current_id = 0; // The current id of the player (0 or 1)
+  state = MENU; 
+  int current_round = 1; // Stop when player[1] finishes round kRound 
   while (render_window.isOpen()) {
 
     switch (state) {
@@ -304,23 +355,48 @@ int main (int argc, char** argv) {
               break;
             case sf::Event::EventType::KeyPressed:
               if (ev.key.code == sf::Keyboard::Space) {
+                // Update all the special cases
+                players[current_id]->update_miaoli_day();
+                players[current_id]->update_jail_day();
+                players[current_id]->update_hospital_day();
+                players[current_id]->update_bribe_day();
+
+                // Check if matches any of the special cases. 
+                // If so, go to state = WAIT and use get_is_still_in_XXX to get the text
+                if (players[current_id]->get_is_still_in_miaoli() || players[current_id]->get_is_still_in_hospital() 
+                    || players[current_id]->get_is_still_in_jail() || players[current_id]->get_is_still_bribed()) {
+                  state = WAIT;
+                } 
+
                 // add 20,000
                 players[current_id]->update_money(kMoneyEachRound);
 
                 // throw the dice, update location
-                int old_location_index = players[current_id]->get_location_index();
                 int dice_value = RandomDice();
                 players[current_id]->update_location_index(dice_value);
                 int new_location_index = players[current_id]->get_location_index();
 
-                // check if went past start(總統府). If so, add money
-                if (new_location_index - old_location_index < 0) {
-
+                // check if is on start(總統府). If so, add money
+                if (new_location_index == 0) {
+                  players[current_id]->update_money(kMoneyEarnedAtStart);
                 }
 
-                if (players[current_id]->get_location_index() == 7) {
-
+                // check if is on 苗栗. If so, change state and stay for 3 days
+                if (new_location_index == 7) {
+                  players[current_id]->update_miaoli_day(true);
+                  state = WAIT;
                 }
+
+                // check if is on 臺大醫院. If so, change state and stay for 3 days.
+                if (new_location_index == 14) {
+                  players[current_id]->update_hospital_day(true);
+                  state = WAIT;
+                }
+
+                if (new_location_index == 23) {
+                  
+                }
+
               }
               break;
           }
@@ -352,9 +428,6 @@ int main (int argc, char** argv) {
         render_window.display();
         break;
 
-
-      case MIAO_LI:
-        break;
 
       case NEWS:
         break;
