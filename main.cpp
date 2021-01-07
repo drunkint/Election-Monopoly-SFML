@@ -1,6 +1,5 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
-#include <random>
 #include <string>
 #include <ctime>
 
@@ -17,8 +16,8 @@ enum State { // 這告訴我們現在在哪個狀況下 然後main 就會跑相對應的程式
   }state;
 
 // Window consts
-const int kWindowWidth = 1400;
-const int kWindowHeight = 1400;
+const int kWindowWidth = 1000;
+const int kWindowHeight = 1000;
 
 // Game Setting Consts
 const int kPlayerNum = 2;
@@ -38,15 +37,15 @@ const int kMoneyEarnedAtStart = 500000;
 const int kBaiPiaoSpendMoney = 100000;
 
 // Random Consts
-const int kDiceMin = 2;
-const int kDiceMax = 12;
-const int kDiceRange = kDiceMax - kDiceMin;
+const int kDiceMin = 1;
+const int kDiceMax = 6;
+const int kDiceRange = kDiceMax - kDiceMin + 1;
 const int kBaiPiaoVoteMin = 5;
 const int kBaiPiaoVoteMax = 10; 
-const int kBaiPiaoVoteRange = kBaiPiaoVoteMax - kBaiPiaoVoteMin;
+const int kBaiPiaoVoteRange = kBaiPiaoVoteMax - kBaiPiaoVoteMin + 1;
 const int kSpeechGetMoneyMin = 100000;
 const int kSpeechGetMoneyMax = 300000;
-const int kSpeechGetMoneyRange = kSpeechGetMoneyMax - kSpeechGetMoneyMin;
+const int kSpeechGetMoneyRange = kSpeechGetMoneyMax - kSpeechGetMoneyMin + 1;
 
 // Random Functions:
 int RandomDice() {
@@ -109,31 +108,38 @@ class Player {
   }
 
   // Money
+  // returns the money of the player
   int get_money() {
     return money_;
   }
-  void UpdateMoney(int amount) { // enter the amount you want to add or spend. Amount is positive if add, and negative if spend.
+  
+   // enter the amount you want to add or spend. Amount is positive if add, and negative if spend.
+  void UpdateMoney(int amount) {
     money_ += amount;
   }
 
   // Votes
+  // plz dont use this rn
   int get_votes() {
     return votes_;
   }
 
   // Bribe
-  void UpdateBribeDay(bool is_today_bribe_day = false) { // pass in true when today is bribe day. Otherwise, just put this code when a day passess.
+  // pass in true when today is bribe day. Otherwise, just put this code when a day passess.
+  void UpdateBribeDay(bool is_today_bribe_day = false) { 
     if (is_today_bribe_day)
       bribe_day_ = kBribeNum;
     else
       bribe_day_ = std::max(bribe_day_ - 1, 0);
   }
-  bool get_is_still_bribed() { // When the police wants to check if you have bribed
+  // When the police wants to check if you have bribed
+  bool get_is_bribed() { 
     return (bribe_day_ > 0) ? true : false;
   }
   
   // miaoli
-  void UpdateMiaoliDay(bool is_today_miaoli_day = false) { // updates the days left until freedom
+  // updates the days left until freedom
+  void UpdateMiaoliDay(bool is_today_miaoli_day = false) { 
     if (is_today_miaoli_day)
       miaoli_day_ = kMiaoliNum;
     else
@@ -142,9 +148,13 @@ class Player {
   bool get_is_still_in_miaoli() {
     return (miaoli_day_ > 0) ? true : false;
   }
+  int get_miaoli_day() {
+    return miaoli_day_;
+  }
 
   // Jail
-  void UpdateJailDay(bool is_today_jail_day = false) { // updates the days left until freedom
+  // updates the days left until freedom
+  void UpdateJailDay(bool is_today_jail_day = false) { 
     if (is_today_jail_day)
       jail_day_ = kJailNum;
     else
@@ -153,9 +163,13 @@ class Player {
   bool get_is_still_in_jail() {
     return (jail_day_ > 0) ? true : false;
   }
+  int get_jail_day() {
+    return jail_day_;
+  }
 
   // Hospital
-  void UpdateHospitalDay(bool is_today_hospital_day = false) { // updates the days left until freedom
+  // updates the days left until freedom
+  void UpdateHospitalDay(bool is_today_hospital_day = false) { 
     if (is_today_hospital_day)
       hospital_day_ = kHospitalNum;
     else
@@ -164,6 +178,9 @@ class Player {
   bool get_is_still_in_hospital() {
     return (miaoli_day_ > 0) ? true : false;
   }
+  int get_hospital_day() {
+    return hospital_day_;
+  }
 
 };
 
@@ -171,12 +188,13 @@ class Player {
 class Location {
   private:
   const std::string name_;
+  const int votes_in_this_region_;
   int vote_[kPlayerNum]; // 百分比
   int current_winner_;
 
   public:
   // Constructor
-  Location(std::string name) :name_(name) { // assuming 2 players
+  Location(std::string name, int votes_in_this_region) :name_(name), votes_in_this_region_(votes_in_this_region){ // assuming 2 players
     current_winner_ = kPlayerNum;
     for (int i = 0; i < kPlayerNum; i++) {
       vote_[i] = 50;
@@ -184,26 +202,34 @@ class Location {
   }
 
   // Accessors
+  // used in the end
+  int get_votes_in_this_region() {
+    return votes_in_this_region_;
+  }
   int get_current_winner()  { // assuming 2 players
     current_winner_ = (vote_[0] > vote_[1]) ? 0 : 1;
     return current_winner_;
   }
 
   // Member Functions
-  void BaiPiao(Player &player) { // assuming only 2 players
+  // updates the money of the player and the votes of the player in this location if baipiao
+  void BaiPiao(Player *player) { // assuming only 2 players
     int delta_vote = RandomBaiPiaoVote();
-    vote_[player.get_player_index()] += delta_vote;
-    vote_[std::abs(1 - player.get_player_index())] -= delta_vote;
-    player.UpdateMoney(-kBaiPiaoSpendMoney);
+    vote_[player->get_player_index()] += delta_vote;
+    vote_[std::abs(1 - player->get_player_index())] -= delta_vote;
+    player->UpdateMoney(-kBaiPiaoSpendMoney);
   }
 
-  void Speech(Player &player) {
+  // updates the money of the plaer and the votes of the player in this location if speech
+  void Speech(Player *player) {
     int delta_money = RandomSpeechGetMoney();
-    player.UpdateMoney(delta_money);
+    player->UpdateMoney(delta_money);
   }
 
 };
 
+// Functions on building and modifying text
+// Builds the text
 void BuildText(sf::Text &text, const sf::Font &font, const sf::String &content, unsigned int size,
                const sf::Color &color, sf::Uint32 style, float x, float y ) {
   text.setFont(font);
@@ -219,10 +245,36 @@ void ChangeDiceText(sf::Text &text, const int dice_number) {
   text.setString(dice_string);
 }
 
+void ChangeTellLocationText(sf::Text &text, const int location_index, const std::string *list_of_locations) {
+  std::string location_string = "You are now at " + list_of_locations[location_index];
+  text.setString(location_string);
+}
+
+void ChangeMiaoliText(sf::Text &text, const int miaoli_day) {
+  std::string miaoli_string = "You have " + std::to_string(miaoli_day) + " days until you leave miaoli.";
+  text.setString(miaoli_string);
+}
+
+void ChangeJailText(sf::Text &text, const int jail_day) {
+  std::string jail_string = "You have " + std::to_string(jail_day) + " days until you leave Jail.";
+  text.setString(jail_string);
+}
+
+void ChangeHospitalText(sf::Text &text, const int hospital_day) {
+  std::string hospital_string = "You have " +std::to_string(hospital_day) + " days until you leave the hospital.";
+  text.setString(hospital_string);
+}
+
+// function that finds the coordinates of players
+sf::Vector2<int> getLocation(int player_num, int location_index, int coordinates[][4]){
+    sf :: Vector2<int> result = {coordinates[location_index][player_num * 2] * 10 / 14, coordinates[location_index][player_num * 2 + 1] * 10 / 14};
+    return result;
+}
+
 
 
 int main (int argc, char** argv) {
-  sf::RenderWindow render_window(sf::VideoMode(kWindowWidth, kWindowHeight), "cute cattt");
+  sf::RenderWindow render_window(sf::VideoMode(kWindowWidth, kWindowHeight), "cute cattt", sf::Style::Titlebar | sf::Style::Close);
   sf::Event ev;
 
 // Menu setup
@@ -237,7 +289,7 @@ int main (int argc, char** argv) {
   sf::Text menu_sentence;
   BuildText(menu_sentence, big_font, "press space to continue", 25, sf::Color::Magenta, sf::Text::Italic, 500, 700);
 
-// Game setup
+// Dice setup
   // Dice Randomizer
   srand(time(0));
   int dice_value = 0;
@@ -249,10 +301,6 @@ int main (int argc, char** argv) {
   // Dice Text
   sf::Text dice_text;
   BuildText(dice_text, big_font, "", 25, sf::Color::Blue, sf::Text::Regular, 500, 250);
-
-  // Tell Location Text
-  sf::Text tell_location_text;
-  BuildText(tell_location_text, big_font, "", 25, sf::Color::Blue, sf::Text::Regular, 500, 500);
 
   // Miao Li Text (optional)
   sf::Text miaoli_text;
@@ -266,21 +314,35 @@ int main (int argc, char** argv) {
   sf::Text hospital_text;
   BuildText(hospital_text, big_font, "", 25, sf::Color::Blue, sf::Text::Regular, 800, 500);
 
+// CITY and NEWS setup
+  // Tell Location Text
+  sf::Text tell_location_text;
+  BuildText(tell_location_text, big_font, "", 25, sf::Color::Blue, sf::Text::Regular, 500, 500);
+
+// CITY setup
+  // Option Bai Piao
+  sf::Text option_bai_piao_text;
+  BuildText(option_bai_piao_text, big_font, "1. pay 100 wan to get 5~10 percent of votes", 50, sf::Color::Blue, sf::Text::Regular, 250, 300);
+
+  // Option Speech
+  sf::Text option_speech_text;
+  BuildText(option_speech_text, big_font, "2. get 10~30 wan ntd", 50, sf::Color::Blue, sf::Text::Regular, 250, 400);
+
+// WAIT setup
+  sf::Text next_player_prompt;
+  BuildText(next_player_prompt, big_font, "press space to pass the dice to the next player!", 50, sf::Color::Blue, sf::Text::Regular, 250, 400);
 
 // BackGround Setup
 
-  //暫時地圖
+  //地圖
   sf::Texture board_texture;
   board_texture.create(kWindowWidth, kWindowHeight);
   board_texture.loadFromFile("images/map.png");
   sf::Sprite board_sprite;
   board_sprite.setTexture(board_texture);
 
-
-  // player1跟2 座標
-
 // Location Setup
-  std::string list_of_location_names[kLocationIndexNum] = {
+  const std::string list_of_location_names_mandarin[kLocationIndexNum] = {
     "總統府",
     "基隆",
     "新北",
@@ -310,10 +372,77 @@ int main (int argc, char** argv) {
     "馬祖",
     "新聞台"
   };
+  
+  const std::string list_of_location_names[kLocationIndexNum] = {
+    "President's place",
+    "ji long",
+    "xin bei",
+    "tai bei",
+    "tao yuan",
+    "xin wen tai",
+    "xin zhu",
+    "Miaoli Kingdom",
+    "tai zhong",
+    "nan tou",
+    "zhang hua",
+    "xin wen tai",
+    "yun lin",
+    "jia yi",
+    "ntu hospital",
+    "tai nan",
+    "gao xiong",
+    "xin wen tai",
+    "peng hu",
+    "ping dong",
+    "tai dong",
+    "lv dao jian yu",
+    "yi lan",
+    "POLICEEEE",
+    "hua lian",
+    "jin men",
+    "ma zu",
+    "xin wen tai"
+  };
+  
+  
+  const int list_of_location_votes[kLocationIndexNum] = {
+    0, 37, 403, 262, 226, 0, 102, 0, 282, 49, 126, 0, 68, 77, 0, 187, 277, 0, 11, 81, 22, 0, 45, 0, 33, 14, 2, 0
+  };
   Location* locations[kLocationIndexNum];
   for (int i = 0; i < kLocationIndexNum; i++) {
-    locations[i] = new Location(list_of_location_names[i]);
+    locations[i] = new Location(list_of_location_names[i], list_of_location_votes[i]);
   }
+
+  int coordinates[28][4]={
+          {1177, 1257, 1309, 1257},
+          {1042, 1185, 1042, 1253},
+          {893, 1185, 893, 1253},
+          {744, 1185 , 744, 1253},
+          {601, 1185, 601, 1253},
+          {450, 1211, 450, 1291},
+          {304, 1185, 304, 1253},
+          {57, 1217, 141, 1217},
+          {100, 1057, 175, 1057},
+          {100, 908, 175, 908},
+          {100, 762, 175, 762},
+          {61, 603, 127, 603},
+          {100, 465, 175, 465},
+          {100, 319, 175, 319},
+          {49, 77, 149, 77},
+          {304, 89, 304, 155},
+          {450, 89, 450, 155},
+          {601, 65, 601, 149},
+          {744, 89, 744, 155},
+          {813, 89, 813, 155},
+          {1042, 89, 1042, 155},
+          {1178, 77, 1318, 77},
+          {1162, 319, 1239, 319},
+          {1200, 465, 1284, 465},
+          {1162, 603, 1239, 603},
+          {1162, 762, 1239, 762},
+          {1162, 908, 1239, 908},
+          {1200, 1057, 1284, 1057}
+  };
 
 // Player Setup
   std::string list_of_player_names[kPlayerNum] = {"one", "two"};
@@ -323,10 +452,13 @@ int main (int argc, char** argv) {
   }
 
 
-// Game Loop
-  int current_id = 0; // The current id of the player (0 or 1)
+// Game Loop  
   state = MENU; 
-  int current_round = 1; // Stop when player[1] finishes round kRound 
+  int current_id = 0; // The current id of the player (0 or 1)
+  int current_round = 0; // Stop when player[1] finishes round kTotalRounds
+  int zero = 0; // total votes in the end of player[0]
+  int one = 0; // total votes in the end of player[1]
+  int winner = kPlayerNum;
   while (render_window.isOpen()) {
 
     switch (state) {
@@ -369,7 +501,10 @@ int main (int argc, char** argv) {
                 // Check if matches any of the special cases. 
                 // If so, go to state = WAIT and use get_is_still_in_XXX to get the text
                 if (players[current_id]->get_is_still_in_miaoli() || players[current_id]->get_is_still_in_hospital() 
-                    || players[current_id]->get_is_still_in_jail() || players[current_id]->get_is_still_bribed()) {
+                    || players[current_id]->get_is_still_in_jail()) {
+                  ChangeMiaoliText(miaoli_text, players[current_id]->get_miaoli_day());
+                  ChangeJailText(jail_text, players[current_id]->get_jail_day());
+                  ChangeHospitalText(hospital_text, players[current_id]->get_hospital_day());
                   state = WAIT;
                 } 
 
@@ -380,11 +515,12 @@ int main (int argc, char** argv) {
                 int dice_value = RandomDice();
                 std::cout << dice_value << std::endl;
                 players[current_id]->UpdateLocationIndex(dice_value);
-                int new_location_index = players[current_id]->get_location_index();
+                int new_location_index = players[current_id]->get_location_index(); // indicates the location of the player in this round
                 ChangeDiceText(dice_text, dice_value);
+                ChangeTellLocationText(tell_location_text, new_location_index, list_of_location_names);
 
                 // check if is on start(總統府). If so, add money
-                if (new_location_index == 0) {
+                if (new_location_index == 0 && current_round != 0) {
                   players[current_id]->UpdateMoney(kMoneyEarnedAtStart);
                   state = WAIT;
                 }
@@ -392,35 +528,43 @@ int main (int argc, char** argv) {
                 // check if is on 苗栗. If so, change state and stay for 3 days
                 else if (new_location_index == 7) {
                   players[current_id]->UpdateMiaoliDay(true);
+                  ChangeMiaoliText(miaoli_text, players[current_id]->get_miaoli_day());
                   state = WAIT;
                 }
 
                 // check if is on 臺大醫院. If so, change state and stay for 3 days.
                 else if (new_location_index == 14) {
                   players[current_id]->UpdateHospitalDay(true);
+                  ChangeHospitalText(hospital_text, players[current_id]->get_hospital_day());
                   state = WAIT;
                 }
 
                 // check if is on Police and has bribed in kBribeNum days
                 // if so, teleport to jail and stay for 3 days
                 else if (new_location_index == 23) {
-                  if (players[current_id]->get_is_still_bribed()) {
+                  if (players[current_id]->get_is_bribed()) {
                     players[current_id]->TeleportToJail();
                     players[current_id]->UpdateJailDay(true);
+                    ChangeJailText(jail_text, players[current_id]->get_jail_day());
                   }
                   state = WAIT;
                 }
 
                 // else if at news
+                else if (new_location_index == 5 || new_location_index == 11 || new_location_index == 17 || new_location_index == 27) {
+                  state = NEWS;
+                }
                 // else at city
                 else {
-                  state = WAIT;
+                  // modify tell_location_text
+                  state = CITY;
                 }
               }
               break;
           }
         }
         render_window.clear(sf::Color::Black);
+        render_window.draw(board_sprite);
         render_window.draw(dice_prompt_text);
         render_window.display();
         break;
@@ -434,34 +578,88 @@ int main (int argc, char** argv) {
               case sf::Keyboard::Escape:
                 state = END;
                 break;
-              //case sf::Keyboard::Num2:
-
-                
-              
+              case sf::Keyboard::Num1:
+                locations[players[current_id]->get_location_index()]->BaiPiao(players[current_id]);
+                state = WAIT;
+                break;
+              case sf::Keyboard::Num2:
+                locations[players[current_id]->get_location_index()]->Speech(players[current_id]); 
+                state = WAIT; 
+                break;
             }
           }        
         }
         render_window.clear(sf::Color::Black);
         render_window.draw(board_sprite);
-        // draw the questions
+        render_window.draw(dice_text);
+        render_window.draw(tell_location_text); // eg. "你現在在苗栗!"
+        render_window.draw(option_bai_piao_text); // eg. "1. 支付100萬，增取5~10%的選票"
+        render_window.draw(option_speech_text); // eg. "2. 獲得10~30萬台幣"
         render_window.display();
         break;
 
 
       case NEWS:
+        while (render_window.pollEvent(ev)) {
+          if (ev.type == sf::Event::EventType::Closed) {
+            render_window.close();
+          } else if (ev.type == sf::Event::EventType::KeyPressed) {
+            switch (ev.key.code) {
+              case sf::Keyboard::Escape:
+                state = END;
+                break;
+              case sf::Keyboard::Space:
+                state = WAIT;
+                break;
+            }
+          }        
+        }
+        render_window.clear(sf::Color::Black);
+        render_window.draw(board_sprite);
+        render_window.draw(tell_location_text); // eg. "你現在在新聞台!"
+        render_window.display();
         break;
 
       case WAIT:
         while (render_window.pollEvent(ev)) {
-          switch (ev.type) {
-            case sf::Event::EventType::Closed:
-              render_window.close();
-              break;
+          if (ev.type == sf::Event::EventType::Closed) {
+            render_window.close();
+          } else if (ev.type == sf::Event::EventType::KeyPressed) {
+            switch (ev.key.code) {
+              case sf::Keyboard::Space:
+                if (current_id == kPlayerNum - 1) {
+                  current_round++;
+                } 
+                if (current_id == kPlayerNum - 1 && current_round == kTotalRounds) {
+                  for (int i = 0; i < kLocationIndexNum; i++) {
+                    if (locations[i]->get_current_winner() == 0) {
+                      zero += locations[i]->get_votes_in_this_region();
+                    } else if (locations[i]->get_current_winner() == 1) {
+                      one += locations[i]->get_votes_in_this_region();
+                    }
+                  }
+                  winner = (zero > one) ? 0 : 1;
+                  if (zero == one) {
+                    winner = locations[3]->get_current_winner();
+                  }
+                  state = END;
+                }
+                current_id = std::abs(1 - current_id);
+                state = DICE;
+                break;
+            }
           }
         }
         render_window.clear(sf::Color::Black);
         render_window.draw(board_sprite);
-        render_window.draw(dice_text);
+        if (players[current_id]->get_is_still_in_miaoli()) {
+          render_window.draw(miaoli_text);
+        } else if (players[current_id]->get_is_still_in_jail()) {
+          render_window.draw(jail_text);
+        } else if (players[current_id]->get_is_still_in_hospital()) {
+          render_window.draw(hospital_text);
+        }
+        render_window.draw(next_player_prompt); // "press space to give the dice to the other player"
         render_window.display();
         break;
       
@@ -474,6 +672,7 @@ int main (int argc, char** argv) {
           }
         }
         render_window.clear(sf::Color::Black);
+        // render_window.draw(winner_text) // eg. "winner is XXX. \n <player0> has xx votes.\n <player1> has yy votes."
         render_window.display();
         break;
     }
@@ -481,12 +680,14 @@ int main (int argc, char** argv) {
   }
 
 
-  delete locations;
-  for (int i = 0; i < kLocationIndexNum; i++)
+  for (int i = 0; i < kLocationIndexNum; i++) {
+    delete locations[i];
     locations[i] = nullptr;
-  delete players;
-  for (int i = 0; i < kPlayerNum; i++)
+  }
+  for (int i = 0; i < kPlayerNum; i++) {
+    delete players[i];
     players[i] = nullptr;
+  }
 
 
   return 0;
