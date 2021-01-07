@@ -4,14 +4,27 @@
 #include <ctime>
 
 // 注意：我們每回合都會給200000，所以如果你花100000拜票然後看到錢增加100000的話，這不是bug
+/*
+代辦事項： (依照重要性排列)
+  讓棋子出現在鍵盤上
+  讓棋子依據dice而移動 (已經寫好取座標函數以及座標庫)
+  把文字的位置放好
+  把文字的大小改好
+  !!!還有新聞台到底要幹嘛啦!!!
+  把字體轉中文
+  把round X 改成 距離選舉還有 kTotalNum - X 天
+  增加賄賂選項並修改按下去的按鈕
+  增加抹黑選項並修改按下去的按鈕
+  增加輸入名字的環節
+*/
 
 enum State { // 這告訴我們現在在哪個狀況下 然後main 就會跑相對應的程式
     MENU, 
-    NAME,
+    NAME, // 輸入名字 (目前還沒有)
     DICE, // when the first player rolls the dice
     CITY, // should be <location type 1> state_1
-    NEWS,
-    WAIT,
+    NEWS, // 當你走到新聞台
+    WAIT, // 做一個整理的動作
     END,
   }state;
 
@@ -22,40 +35,41 @@ const int kWindowHeight = 1000;
 // Game Setting Consts
 const int kPlayerNum = 2;
 const int kTotalRounds = 10;
-const int kLocationIndexNum = 28;
+const int kLocationIndexNum = 28; // num of total locations
 const int kStartMoney = 20000000;
-const int kBribeNum = 10; // The starting value of bribe_day_
-const int kMiaoliNum = 3; // The starting value of bribe_day_
-const int kJailNum = 3;
-const int kHospitalNum = 3;
+const int kBribeNum = 10; // 遇到警察會回溯幾天看你有沒有賄選
+const int kMiaoliNum = 3; // 你會在苗栗卡幾天
+const int kJailNum = 3; // 你會在監獄卡幾天
+const int kHospitalNum = 3; // 你會在醫院卡幾天
 
 // Const Earn Money Consts
-const int kMoneyEachRound = 200000;
-const int kMoneyEarnedAtStart = 500000;
+const int kMoneyEachRound = 200000; // 每回合增加多少錢
+const int kMoneyEarnedAtStart = 500000; // 一開始你拿到多少錢
 
 // Const Spend Money Consts
-const int kBaiPiaoSpendMoney = 100000;
+const int kBaiPiaoSpendMoney = 100000; // 拜票所花的錢
 
 // Random Consts
-const int kDiceMin = 1;
+const int kDiceMin = 1; 
 const int kDiceMax = 6;
 const int kDiceRange = kDiceMax - kDiceMin + 1;
-const int kBaiPiaoVoteMin = 5;
-const int kBaiPiaoVoteMax = 10; 
-const int kBaiPiaoVoteRange = kBaiPiaoVoteMax - kBaiPiaoVoteMin + 1;
-const int kSpeechGetMoneyMin = 100000;
-const int kSpeechGetMoneyMax = 300000;
-const int kSpeechGetMoneyRange = kSpeechGetMoneyMax - kSpeechGetMoneyMin + 1;
+const int kBaiPiaoVoteMin = 5; // 拜票至少會讓你的選票百分比增加多少
+const int kBaiPiaoVoteMax = 10; // 拜票最多會讓你的選票百分比增加多少
+const int kBaiPiaoVoteRange = kBaiPiaoVoteMax - kBaiPiaoVoteMin + 1; // 拜票會讓你的選票百分比增加多少的範圍
+const int kSpeechGetMoneyMin = 100000; // 演講至少會讓你的選票百分比增加多少
+const int kSpeechGetMoneyMax = 300000; // 演講至多會讓你的選票百分比增加多少
+const int kSpeechGetMoneyRange = kSpeechGetMoneyMax - kSpeechGetMoneyMin + 1; // 演講會讓你的選票百分比增加多少的範圍
 
 // Random Functions:
-int RandomDice() {
+// 回傳隨機dice點數
+int RandomDice() { 
   return rand() % kDiceRange + kDiceMin;
 }
-
+// 回傳隨機拜票選票百分比數
 int RandomBaiPiaoVote() {
   return rand() % kBaiPiaoVoteRange + kBaiPiaoVoteMin;
 }
-
+// 回傳隨機演講獲得的錢
 int RandomSpeechGetMoney() {
   return rand() % kSpeechGetMoneyRange + kSpeechGetMoneyMin;
 }
@@ -63,11 +77,11 @@ int RandomSpeechGetMoney() {
 
 class Player {
   private:
-  std::string name_;
-  int player_index_;
-  int location_index_;
+  std::string name_; // 名字
+  int player_index_; // 編號
+  int location_index_; // 我在哪
   int money_;
-  int votes_;
+  int votes_; // 這個應該用不到...
   int bribe_day_; // if the player meets the police when bribe_day_ > 0, he gets caught
   int miaoli_day_; // the days left until the player could go out of miaoli
   int jail_day_; // the days left until the player could go out of jail
@@ -104,10 +118,12 @@ class Player {
   int get_location_index() const {
     return location_index_;
   }
+  // 更新我在哪 輸入步數
   void UpdateLocationIndex(int steps) {
     location_index_ += steps;
     location_index_ %= kLocationIndexNum;
   }
+  // 直接傳送到監獄
   void TeleportToJail() {
     location_index_ = 21;
   }
@@ -150,9 +166,11 @@ class Player {
     else
       miaoli_day_ = std::max(miaoli_day_ - 1, 0);
   }
+  // 回傳你是否卡在苗栗
   bool get_is_still_in_miaoli() const {
     return (miaoli_day_ > 0) ? true : false;
   }
+  // 回傳你還剩下幾天出去苗栗
   int get_miaoli_day() const {
     return miaoli_day_;
   }
@@ -165,9 +183,11 @@ class Player {
     else
       jail_day_ = std::max(jail_day_ - 1, 0);
   }
+  // 回傳你是否還在監獄
   bool get_is_still_in_jail() const {
     return (jail_day_ > 0) ? true : false;
   }
+  // 你還剩下幾天從監獄裡出來
   int get_jail_day() const {
     return jail_day_;
   }
@@ -180,9 +200,11 @@ class Player {
     else
       hospital_day_ = std::max(hospital_day_ - 1, 0);
   }
+  // 回傳你是否還在住院
   bool get_is_still_in_hospital() const {
     return (miaoli_day_ > 0) ? true : false;
   }
+  // 回傳你還剩下幾天出院
   int get_hospital_day() const {
     return hospital_day_;
   }
@@ -192,10 +214,10 @@ class Player {
 
 class Location {
   private:
-  const std::string name_;
-  const int votes_in_this_region_;
-  int vote_[kPlayerNum]; // 百分比
-  int current_winner_;
+  const std::string name_; // 名字
+  const int votes_in_this_region_; // 這個地區的總選票數
+  int vote_[kPlayerNum]; // vote_[x] 代表玩家x在這個選區的佔票比例數
+  int current_winner_; // 目前的贏家
 
   public:
   // Constructor
@@ -207,10 +229,11 @@ class Location {
   }
 
   // Accessors
-  // used in the end
+  // 回傳這個地區的總票數(可以拿的)
   int get_votes_in_this_region() const {
     return votes_in_this_region_;
   }
+  // 回傳這個地區目前的贏家
   int get_current_winner() { // assuming 2 players
     current_winner_ = (vote_[0] > vote_[1]) ? 0 : 1;
     return current_winner_;
@@ -245,36 +268,43 @@ void BuildText(sf::Text &text, const sf::Font &font, const sf::String &content, 
   text.setPosition(x, y);
 } 
 
+// 更新dice的文字
 void ChangeDiceText(sf::Text &text, const int dice_number) {
   std::string dice_string = "You rolled " + std::to_string(dice_number) + " steps";
   text.setString(dice_string);
 }
 
+// 更新地點告知的文字
 void ChangeTellLocationText(sf::Text &text, const int location_index, const std::string *list_of_locations) {
   std::string location_string = "You are now at " + list_of_locations[location_index];
   text.setString(location_string);
 }
 
+// 更新"你還剩下幾天才能離開苗栗"
 void ChangeMiaoliText(sf::Text &text, const int miaoli_day) {
   std::string miaoli_string = "You have " + std::to_string(miaoli_day) + " days until you leave miaoli.";
   text.setString(miaoli_string);
 }
 
+// 更新"你還剩下幾天才能出監牢"
 void ChangeJailText(sf::Text &text, const int jail_day) {
   std::string jail_string = "You have " + std::to_string(jail_day) + " days until you leave Jail.";
   text.setString(jail_string);
 }
 
+// 更新"你還剩下幾天才能出院"
 void ChangeHospitalText(sf::Text &text, const int hospital_day) {
   std::string hospital_string = "You have " +std::to_string(hospital_day) + " days until you leave the hospital.";
   text.setString(hospital_string);
 }
 
+// 更新"這是第幾回合"
 void ChangeTellRoundText(sf::Text &text, const int round) {
   std::string round_string = "Round: " + std::to_string(round);
   text.setString(round_string);
 }
 
+// 更新"現在是誰在玩" 以及 "他有多少錢"
 void ChangeTellPlayerAndPropertiesText(sf::Text &text, const Player *player) {
   std::string p_and_p_string = "Player: " + player->get_player_name() + "; " + std::to_string(player->get_money()) + " ntd";
   text.setString(p_and_p_string);
@@ -290,6 +320,7 @@ int main (int argc, char** argv) {
   sf::RenderWindow render_window(sf::VideoMode(kWindowWidth, kWindowHeight), "cute cattt", sf::Style::Titlebar | sf::Style::Close);
   sf::Event ev;
 
+  // 目前隨便放的字體
   sf::Font big_font;
   big_font.loadFromFile("fonts/HanaleiFill-Regular.ttf");
 
@@ -417,7 +448,6 @@ int main (int argc, char** argv) {
     "xin wen tai"
   };
   
-  
   const int list_of_location_votes[kLocationIndexNum] = {
     0, 37, 403, 262, 226, 0, 102, 0, 282, 49, 126, 0, 68, 77, 0, 187, 277, 0, 11, 81, 22, 0, 45, 0, 33, 14, 2, 0
   };
@@ -494,7 +524,7 @@ int main (int argc, char** argv) {
               break;
             case sf::Event::EventType::KeyPressed:
               if (ev.key.code == sf::Keyboard::Space) {
-              
+                // 按下空格就繼續，準備丟dice
                 state = DICE;
               }
               break;
@@ -520,11 +550,12 @@ int main (int argc, char** argv) {
                 players[current_id]->UpdateHospitalDay();
                 players[current_id]->UpdateBribeDay();
 
+                // 更新固定現實的提示(回合，玩家，錢)
                 ChangeTellRoundText(tell_round_text, current_round + 1);
                 ChangeTellPlayerAndPropertiesText(tell_player_and_properties_text, players[current_id]);
 
                 // Check if matches any of the special cases. 
-                // If so, go to state = WAIT and use get_is_still_in_XXX to get the text
+                // If so, go to state = WAIT and use get_is_still_in_XXX to get the text (see if-else in wait -> render_window.draw)
                 if (players[current_id]->get_is_still_in_miaoli() || players[current_id]->get_is_still_in_hospital() 
                     || players[current_id]->get_is_still_in_jail()) {
                   ChangeMiaoliText(miaoli_text, players[current_id]->get_miaoli_day());
@@ -533,12 +564,12 @@ int main (int argc, char** argv) {
                   state = WAIT;
                 } 
 
-                // add 20,000
+                // 每回合給錢
                 players[current_id]->UpdateMoney(kMoneyEachRound);
 
                 // throw the dice, update location and text
                 int dice_value = RandomDice();
-                std::cout << dice_value << std::endl;
+                std::cout << dice_value << std::endl; // 輸出到terminal裡面 方便debug
                 players[current_id]->UpdateLocationIndex(dice_value);
                 int new_location_index = players[current_id]->get_location_index(); // indicates the location of the player in this round
                 ChangeDiceText(dice_text, dice_value);
@@ -601,17 +632,21 @@ int main (int argc, char** argv) {
             render_window.close();
           } else if (ev.type == sf::Event::EventType::KeyPressed) {
             switch (ev.key.code) {
-              case sf::Keyboard::Escape:
+              case sf::Keyboard::Escape: // 按escape的話直接強迫結束
                 state = END;
                 break;
               case sf::Keyboard::Num1:
+                // 呼叫拜票函數
                 locations[players[current_id]->get_location_index()]->BaiPiao(players[current_id]);
+                // 更新文字
                 ChangeTellRoundText(tell_round_text, current_round + 1);
                 ChangeTellPlayerAndPropertiesText(tell_player_and_properties_text, players[current_id]);
                 state = WAIT;
                 break;
               case sf::Keyboard::Num2:
+                // 呼叫演說函數
                 locations[players[current_id]->get_location_index()]->Speech(players[current_id]); 
+                // 更新文字
                 ChangeTellRoundText(tell_round_text, current_round + 1);
                 ChangeTellPlayerAndPropertiesText(tell_player_and_properties_text, players[current_id]);
                 state = WAIT; 
@@ -661,12 +696,15 @@ int main (int argc, char** argv) {
           } else if (ev.type == sf::Event::EventType::KeyPressed) {
             switch (ev.key.code) {
               case sf::Keyboard::Space:
-                std::cout << "round: " << current_round + 1 << std::endl;
-                std::cout << "rn is "<< current_id <<"'s turn" << std::endl;
+                std::cout << "round: " << current_round + 1 << std::endl; // 方便debug
+                std::cout << "rn is "<< current_id <<"'s turn" << std::endl; // 方便debug
+                // 如果是玩家1 (有兩個玩家：玩家0 與玩家1)的回合，那麼回合++
                 if (current_id == kPlayerNum - 1) {
                   current_round++;
                 } 
+                // 如果是玩家1 (有兩個玩家：玩家0 與玩家1)的回合，而且已經到限定的回合了，那麼結算選區，找出贏家
                 if (current_id == kPlayerNum - 1 && current_round == kTotalRounds) {
+                  // 每個選區跑一遍
                   for (int i = 0; i < kLocationIndexNum; i++) {
                     if (locations[i]->get_current_winner() == 0) {
                       zero += locations[i]->get_votes_in_this_region();
@@ -674,13 +712,15 @@ int main (int argc, char** argv) {
                       one += locations[i]->get_votes_in_this_region();
                     }
                   }
+                  // 找出贏家。先比對選票數，如果相同，再比較金錢
                   winner = (zero > one) ? 0 : 1;
                   if (zero == one) {
                     winner = (players[0]->get_money() > players[1]->get_money()) ? 0 : 1;
                   }
-                  std::cout << "end game, winner: " << winner << std::endl;
+                  std::cout << "end game, winner: " << winner << std::endl; // 方便debug
                   state = END;
                 } else {
+                  // 如果沒有結算的話，交換玩家，更新文字，回到dice
                   current_id = std::abs(1 - current_id);
                   ChangeTellRoundText(tell_round_text, current_round + 1);
                   ChangeTellPlayerAndPropertiesText(tell_player_and_properties_text, players[current_id]);
@@ -692,6 +732,7 @@ int main (int argc, char** argv) {
         }
         render_window.clear(sf::Color::Black);
         render_window.draw(board_sprite);
+        // 如果有特殊情況的話，把那個特殊情況印出來(文字在Dice那邊做修正)
         if (players[current_id]->get_is_still_in_miaoli()) {
           render_window.draw(miaoli_text);
         } else if (players[current_id]->get_is_still_in_jail()) {
@@ -722,6 +763,7 @@ int main (int argc, char** argv) {
   }
 
 
+  // delete掉array of pointers
   for (int i = 0; i < kLocationIndexNum; i++) {
     delete locations[i];
     locations[i] = nullptr;
