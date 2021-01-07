@@ -21,7 +21,7 @@ const int kWindowHeight = 1000;
 
 // Game Setting Consts
 const int kPlayerNum = 2;
-const int kTotalRounds = 5;
+const int kTotalRounds = 2;
 const int kLocationIndexNum = 28;
 const int kStartMoney = 20000000;
 const int kBribeNum = 10; // The starting value of bribe_day_
@@ -627,6 +627,8 @@ int main (int argc, char** argv) {
           } else if (ev.type == sf::Event::EventType::KeyPressed) {
             switch (ev.key.code) {
               case sf::Keyboard::Space:
+                std::cout << "round: " << current_round << std::endl;
+                std::cout << "rn is "<< current_id <<"'s turn" << std::endl;
                 if (current_id == kPlayerNum - 1) {
                   current_round++;
                 } 
@@ -642,11 +644,13 @@ int main (int argc, char** argv) {
                   if (zero == one) {
                     winner = locations[3]->get_current_winner();
                   }
+                  std::cout << "end game" << std::endl;
                   state = END;
+                } else {
+                  current_id = std::abs(1 - current_id);
+                  state = DICE;
+                  break;
                 }
-                current_id = std::abs(1 - current_id);
-                state = DICE;
-                break;
             }
           }
         }
