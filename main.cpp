@@ -2,11 +2,12 @@
 #include <ctime>
 #include <iostream>
 #include <string>
+#include <cmath>
 
 // 注意：我們每回合都會給200000，所以如果你花100000拜票然後看到錢增加100000的話，這不是bug
 // Style: https://google.github.io/styleguide/cppguide.html , 但enum用全大寫因為我們沒用macro，然後註解也不限長度
 /*
-代辦事項： (依照重要性排列)
+待辦事項： (依照重要性排列)
   - 把文字的位置放好
   - 把文字的大小改好
   - !!!還有新聞台到底要幹嘛啦!!!
@@ -47,9 +48,9 @@ const int kPlayerHeight = 130;
 
 // Game Setting Consts
 const int kPlayerNum = 2;
-const int kTotalRounds = 10;
+const int kTotalRounds = 3;
 const int kLocationIndexNum = 28;  // num of total locations
-const int kStartMoney = 20000000;
+const int kStartMoney = 0;
 const int kBribeNum = 10;    // 遇到警察會回溯幾天看你有沒有賄選
 const int kMiaoliNum = 3;    // 你會在苗栗卡幾天
 const int kJailNum = 3;      // 你會在監獄卡幾天
@@ -131,7 +132,7 @@ class Player {
   }
   // 更新我在哪 輸入步數
   void UpdateLocationIndex(int steps) {
-    location_index_ += steps;
+      location_index_ += steps;
     location_index_ %= kLocationIndexNum;
   }
   // 直接傳送到監獄
@@ -273,19 +274,38 @@ void BuildText(sf::Text &text, const sf::Font &font, const sf::String &content, 
   text.setCharacterSize(size);
   text.setFillColor(color);
   text.setStyle(style);
+  text.setOrigin(floor(text.getLocalBounds().width) / 2, floor(text.getLocalBounds().height) / 2);
   text.setPosition(x, y);
 }
+
+void BuildText(sf::Text &text, const sf::Font &font, const std::wstring &content, unsigned int size,
+               const sf::Color &color, sf::Uint32 style, float x, float y) {
+    text.setFont(font);
+    text.setString(content);
+    text.setCharacterSize(size);
+    text.setFillColor(color);
+    text.setStyle(style);
+    text.setOrigin(floor(text.getLocalBounds().width) / 2, floor(text.getLocalBounds().height) / 2);
+    text.setPosition(x, y);
+}
+
 
 // 更新dice的文字
 void ChangeDiceText(sf::Text &text, const int dice_number) {
   std::string dice_string = "You rolled " + std::to_string(dice_number) + " steps";
+  text.setFillColor(sf::Color::Red);
   text.setString(dice_string);
+  text.setPosition(220, 600);
+  text.setCharacterSize(32);
 }
 
 // 更新地點告知的文字
 void ChangeTellLocationText(sf::Text &text, const int location_index, const std::string *list_of_locations) {
   std::string location_string = "You are now at " + list_of_locations[location_index];
+  text.setFillColor(sf::Color::Red);
   text.setString(location_string);
+  text.setPosition(220, 650);
+  text.setCharacterSize(32);
 }
 
 // 更新"你還剩下幾天才能離開苗栗"
@@ -308,15 +328,16 @@ void ChangeHospitalText(sf::Text &text, const int hospital_day) {
 
 // 更新"這是第幾回合"
 void ChangeTellRoundText(sf::Text &text, const int round) {
-  std::string round_string = "Round: " + std::to_string(round);
+  std::string round_string = std::to_string(kTotalRounds - round + 1);
   text.setString(round_string);
 }
 
 // 更新"現在是誰在玩" 以及 "他有多少錢"
 void ChangeTellPlayerAndPropertiesText(sf::Text &text, const Player *player) {
-  std::string p_and_p_string = "Player: " + player->get_player_name() + "; " + std::to_string(player->get_money()) + " ntd";
+  std::string p_and_p_string = "Player: " + player->get_player_name() + "\n" + std::to_string(player->get_money()) + " ntd";
   text.setString(p_and_p_string);
 }
+
 
 // function that finds the coordinates of players
 sf::Vector2f GetLocation(int player_num, int location_index, float coordinates[][4]) {
@@ -330,16 +351,16 @@ int main(int argc, char **argv) {
 
   // 目前隨便放的字體
   sf::Font big_font;
+  sf::Font chinese;
   big_font.loadFromFile("fonts/HanaleiFill-Regular.ttf");
 
   // Menu setup
 
   // Menu Text
   sf::Text menu_text;
-  BuildText(menu_text, big_font, "MENU", 50, sf::Color::White, sf::Text::Bold, 500, 500);
-
+  BuildText(menu_text, big_font, "MENU", 100, sf::Color::White, sf::Text::Regular, 500, 328);
   sf::Text menu_sentence;
-  BuildText(menu_sentence, big_font, "press space to continue", 25, sf::Color::Magenta, sf::Text::Italic, 500, 700);
+  BuildText(menu_sentence, big_font, "press \"Space\" to continue", 50, sf::Color::Magenta, sf::Text::Italic, 500, 508);
 
   // Dice setup
   // Dice Randomizer
@@ -348,7 +369,7 @@ int main(int argc, char **argv) {
 
   // Dice Prompt Text
   sf::Text dice_prompt_text;
-  BuildText(dice_prompt_text, big_font, "Press Space to roll the dice!", 50, sf::Color::Blue, sf::Text::Bold, 500, 250);
+  BuildText(dice_prompt_text, big_font, "Press \"Space\" to roll the dice!", 44, sf::Color::Blue, sf::Text::Bold, 500, 294);
 
   // Dice Text
   sf::Text dice_text;
@@ -374,15 +395,19 @@ int main(int argc, char **argv) {
   // CITY setup
   // Option Bai Piao
   sf::Text option_bai_piao_text;
-  BuildText(option_bai_piao_text, big_font, "1. pay 100 wan to get 5~10 percent of votes", 50, sf::Color::Blue, sf::Text::Regular, 250, 300);
+  BuildText(option_bai_piao_text, big_font, "1. pay 100 wan to get 5~10 percent of votes", 30, sf::Color::Blue, sf::Text::Regular, 500, 267);
+
+  // Error Message
+  sf::Text error_message_text;
+  BuildText(error_message_text, big_font, "I cannot do this", 50, sf::Color::Red, sf::Text::Bold, 500, 357);
 
   // Option Speech
   sf::Text option_speech_text;
-  BuildText(option_speech_text, big_font, "2. get 10~30 wan ntd", 50, sf::Color::Blue, sf::Text::Regular, 250, 400);
+  BuildText(option_speech_text, big_font, "2. get 10~30 wan ntd", 30, sf::Color::Blue, sf::Text::Regular, 500, 307);
 
   // WAIT setup
   sf::Text next_player_prompt;
-  BuildText(next_player_prompt, big_font, "press space to pass the dice to the next player!", 50, sf::Color::Blue, sf::Text::Regular, 250, 400);
+  BuildText(next_player_prompt, big_font, "press \"Space\" to pass the dice \n to the next player!", 45 , sf::Color::Blue, sf::Text::Regular, 500, 294);
 
   // BackGround Setup
 
@@ -517,12 +542,17 @@ int main(int argc, char **argv) {
   // General text setup
   // tell round text
   sf::Text tell_round_text;
-  BuildText(tell_round_text, big_font, "Round: 1", 25, sf::Color::Blue, sf::Text::Regular, 500, 150);
+  tell_round_text.setOrigin(floor(tell_round_text.getLocalBounds().width) / 2, floor(tell_round_text.getLocalBounds().height) / 2);
+  BuildText(tell_round_text, big_font, std::to_string(kTotalRounds), 96, sf::Color::Black, sf::Text::Regular, 660, 710);
 
   // tell player and properties text
   sf::Text tell_player_and_properties_text;
-  std::string p_and_p_init = "Player: " + players[0]->get_player_name() + "; " + std::to_string(players[0]->get_money()) + " ntd";
-  BuildText(tell_player_and_properties_text, big_font, p_and_p_init, 25, sf::Color::Blue, sf::Text::Regular, 500, 200);
+  std::string p_and_p_init = "Player: " + players[0]->get_player_name() +  "\n" + std::to_string(players[0]->get_money()) + " ntd";
+  BuildText(tell_player_and_properties_text, big_font, p_and_p_init, 28, sf::Color::Black, sf::Text::Regular, 320, 750);
+
+  // tell who is the winner(set the string later when the game ends)
+  sf::Text winner_text;
+  std::string winner_str;
 
   // Game Loop
   state = MENU;
@@ -531,6 +561,7 @@ int main(int argc, char **argv) {
   int zero = 0;           // total votes in the end of player[0]
   int one = 0;            // total votes in the end of player[1]
   int winner = kPlayerNum;
+  bool show_error_message = false;
   while (render_window.isOpen()) {
     switch (state) {
       case MENU:
@@ -581,19 +612,22 @@ int main(int argc, char **argv) {
                 }
 
                 // 每回合給錢
-                players[current_id]->UpdateMoney(kMoneyEachRound);
+                if (current_round != 0)
+                  players[current_id]->UpdateMoney(kMoneyEachRound);
 
                 // throw the dice, update location and text
                 int dice_value = RandomDice();
                 std::cout << dice_value << std::endl;  // 輸出到terminal裡面 方便debug
+
                 players[current_id]->UpdateLocationIndex(dice_value);
                 int new_location_index = players[current_id]->get_location_index();  // indicates the location of the player in this round
                 ChangeDiceText(dice_text, dice_value);
                 ChangeTellLocationText(tell_location_text, new_location_index, list_of_location_names);
-                if (current_id == 0) {
-                  cat_sprite.setPosition(GetLocation(0, new_location_index, coordinates));
-                } else if (current_id == 1) {
-                  prof_sprite.setPosition(GetLocation(1, new_location_index, coordinates));
+                if (current_id == 0){
+                    cat_sprite.setPosition(GetLocation(0, new_location_index, coordinates));
+                }
+                else if (current_id == 1) {
+                    prof_sprite.setPosition(GetLocation(1, new_location_index, coordinates));
                 }
 
                 // check if is on start(總統府). If so, add money
@@ -665,12 +699,17 @@ int main(int argc, char **argv) {
                 state = END;
                 break;
               case sf::Keyboard::Num1:
-                // 呼叫拜票函數
-                locations[players[current_id]->get_location_index()]->BaiPiao(players[current_id]);
-                // 更新文字
-                ChangeTellRoundText(tell_round_text, current_round + 1);
-                ChangeTellPlayerAndPropertiesText(tell_player_and_properties_text, players[current_id]);
-                state = WAIT;
+                if (players[current_id]->get_money() < kBaiPiaoSpendMoney) {
+                  show_error_message = true;
+                } else {
+                  // 呼叫拜票函數
+                  locations[players[current_id]->get_location_index()]->BaiPiao(players[current_id]);
+                  // 更新文字
+                  ChangeTellRoundText(tell_round_text, current_round + 1);
+                  ChangeTellPlayerAndPropertiesText(tell_player_and_properties_text, players[current_id]);
+                  show_error_message = false;
+                  state = WAIT;
+                }
                 break;
               case sf::Keyboard::Num2:
                 // 呼叫演說函數
@@ -678,6 +717,7 @@ int main(int argc, char **argv) {
                 // 更新文字
                 ChangeTellRoundText(tell_round_text, current_round + 1);
                 ChangeTellPlayerAndPropertiesText(tell_player_and_properties_text, players[current_id]);
+                show_error_message = false;
                 state = WAIT;
                 break;
             }
@@ -693,6 +733,10 @@ int main(int argc, char **argv) {
         render_window.draw(option_speech_text);    // eg. "2. 獲得10~30萬台幣"
         render_window.draw(cat_sprite);
         render_window.draw(prof_sprite);
+        if (show_error_message) {
+          render_window.draw(error_message_text);
+        }
+
         render_window.display();
         break;
 
@@ -750,6 +794,8 @@ int main(int argc, char **argv) {
                     winner = (players[0]->get_money() > players[1]->get_money()) ? 0 : 1;
                   }
                   std::cout << "end game, winner: " << winner << std::endl;  // 方便debug
+                  winner_str = winner == 0 ? "The winner is player one !" : "The winner is player two !";
+                  BuildText(winner_text, big_font, winner_str, 45, sf::Color::White, sf::Text::Regular, 500, 800);
                   state = END;
                 } else {
                   // 如果沒有結算的話，交換玩家，更新文字，回到dice
@@ -789,7 +835,20 @@ int main(int argc, char **argv) {
           }
         }
         render_window.clear(sf::Color::Black);
-        // render_window.draw(winner_text) // eg. "winner is XXX. \n <player0> has xx votes.\n <player1> has yy votes."
+        // Display the winner and the  winner's photo
+        if (winner == 0){
+            cat_sprite.setOrigin(floor(cat_sprite.getLocalBounds().width) / 2, floor(cat_sprite.getLocalBounds().height) / 2);
+            cat_sprite.setPosition(kWindowWidth / 2, kWindowHeight / 2);
+            cat_sprite.setScale(1.2, 1.2);
+            render_window.draw(cat_sprite);
+        }
+        else if (winner == 1){
+            prof_sprite.setOrigin(floor(prof_sprite.getLocalBounds().width) / 2, floor(prof_sprite.getLocalBounds().height) / 2);
+            prof_sprite.setPosition(kWindowWidth / 2, kWindowHeight / 2);
+            prof_sprite.setScale(1.2, 1.2);
+            render_window.draw(prof_sprite);
+        }
+        render_window.draw(winner_text);// eg. "winner is XXX. \n <player0> has xx votes.\n <player1> has yy votes."
         render_window.display();
         break;
     }
