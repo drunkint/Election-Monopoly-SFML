@@ -48,7 +48,7 @@ const int kPlayerHeight = 130;
 
 // Game Setting Consts
 const int kPlayerNum = 2;
-const int kTotalRounds = 3;
+const int kTotalRounds = 10;
 const int kLocationIndexNum = 28;  // num of total locations
 const int kStartMoney = 0;
 const int kBribeNum = 10;    // 遇到警察會回溯幾天看你有沒有賄選
@@ -450,34 +450,34 @@ int main(int argc, char **argv) {
       "新聞台"};
 
   const std::string list_of_location_names[kLocationIndexNum] = {
-      "President's place",
-      "ji long",
-      "xin bei",
-      "tai bei",
-      "tao yuan",
-      "xin wen tai",
-      "xin zhu",
-      "Miaoli Kingdom",
-      "tai zhong",
-      "nan tou",
-      "zhang hua",
-      "xin wen tai",
-      "yun lin",
-      "jia yi",
-      "ntu hospital",
-      "tai nan",
-      "gao xiong",
-      "xin wen tai",
-      "peng hu",
-      "ping dong",
-      "tai dong",
-      "lv dao jian yu",
-      "yi lan",
-      "POLICEEEE",
-      "hua lian",
-      "jin men",
-      "ma zu",
-      "xin wen tai"};
+      "Office of the President, ROC",
+      "Keelung City",
+      "New Taipei City",
+      "Taipei City",
+      "Taoyuan City",
+      "TVBS news",
+      "Hsinchu County",
+      "The Miaoli Empire",
+      "Taichung City",
+      "Nantou County",
+      "Changhua County",
+      "Chung Tian news",
+      "Yunlin County",
+      "Chiayi County",
+      "NTU Hospital",
+      "Tainan City",
+      "Kaohsiung City",
+      "Tai Shi news",
+      "Penghu County",
+      "Pingtung County",
+      "Taitung County",
+      "Lyudao Prison",
+      "Yilan County",
+      "ROC Criminal Investigation Bureau", // 內政部警政署刑事警察局
+      "Hualien County",
+      "Kinmen County",
+      "Lienchiang County",
+      "San Li Live news"};
 
   const int list_of_location_votes[kLocationIndexNum] = {
       0, 37, 403, 262, 226, 0, 102, 0, 282, 49, 126, 0, 68, 77, 0, 187, 277, 0, 11, 81, 22, 0, 45, 0, 33, 14, 2, 0};
@@ -609,79 +609,90 @@ int main(int argc, char **argv) {
                   ChangeJailText(jail_text, players[current_id]->get_jail_day());
                   ChangeHospitalText(hospital_text, players[current_id]->get_hospital_day());
                   state = WAIT;
-                }
+                } else {
+                  std::cout << "dice rolled" << std::endl;
 
-                // 每回合給錢
-                if (current_round != 0)
-                  players[current_id]->UpdateMoney(kMoneyEachRound);
+                  // 每回合給錢
+                  if (current_round != 0)
+                    players[current_id]->UpdateMoney(kMoneyEachRound);
 
-                // throw the dice, update location and text
-                int dice_value = RandomDice();
-                std::cout << dice_value << std::endl;  // 輸出到terminal裡面 方便debug
+                  // throw the dice, update location and text
+                  int dice_value = RandomDice();
+                  std::cout << dice_value << std::endl;  // 輸出到terminal裡面 方便debug
 
-                players[current_id]->UpdateLocationIndex(dice_value);
-                int new_location_index = players[current_id]->get_location_index();  // indicates the location of the player in this round
-                ChangeDiceText(dice_text, dice_value);
-                ChangeTellLocationText(tell_location_text, new_location_index, list_of_location_names);
-                if (current_id == 0){
-                    cat_sprite.setPosition(GetLocation(0, new_location_index, coordinates));
-                }
-                else if (current_id == 1) {
-                    prof_sprite.setPosition(GetLocation(1, new_location_index, coordinates));
-                }
-
-                // check if is on start(總統府). If so, add money
-                if (new_location_index == 0 && current_round != 0) {
-                  players[current_id]->UpdateMoney(kMoneyEarnedAtStart);
-                  state = WAIT;
-                }
-
-                // check if is on 苗栗. If so, change state and stay for 3 days
-                else if (new_location_index == 7) {
-                  players[current_id]->UpdateMiaoliDay(true);
-                  ChangeMiaoliText(miaoli_text, players[current_id]->get_miaoli_day());
-                  state = WAIT;
-                }
-
-                // check if is on 臺大醫院. If so, change state and stay for 3 days.
-                else if (new_location_index == 14) {
-                  players[current_id]->UpdateHospitalDay(true);
-                  ChangeHospitalText(hospital_text, players[current_id]->get_hospital_day());
-                  state = WAIT;
-                }
-
-                // check if is on Police and has bribed in kBribeNum days
-                // if so, teleport to jail and stay for 3 days
-                else if (new_location_index == 23) {
-                  if (players[current_id]->get_is_bribed()) {
-                    players[current_id]->TeleportToJail();
-                    players[current_id]->UpdateJailDay(true);
-                    ChangeJailText(jail_text, players[current_id]->get_jail_day());
-                    if (current_id == 0) {
-                      cat_sprite.setPosition(GetLocation(0, 21, coordinates));
-                    } else if (current_id == 1) {
-                      prof_sprite.setPosition(GetLocation(1, 21, coordinates));
-                    }
-
+                  players[current_id]->UpdateLocationIndex(dice_value);
+                  int new_location_index = players[current_id]->get_location_index();  // indicates the location of the player in this round
+                  ChangeDiceText(dice_text, dice_value);
+                  ChangeTellLocationText(tell_location_text, new_location_index, list_of_location_names);
+                  if (current_id == 0){
+                      cat_sprite.setPosition(GetLocation(0, new_location_index, coordinates));
                   }
-                  state = WAIT;
-                }
+                  else if (current_id == 1) {
+                      prof_sprite.setPosition(GetLocation(1, new_location_index, coordinates));
+                  }
 
-                // else if at news
-                else if (new_location_index == 5 || new_location_index == 11 || new_location_index == 17 || new_location_index == 27) {
-                  state = NEWS;
-                }
-                // else at city
-                else {
-                  state = CITY;
-                }
+                  // check if is on start(總統府). If so, add money
+                  if (new_location_index == 0 && current_round != 0) {
+                    players[current_id]->UpdateMoney(kMoneyEarnedAtStart);
+                    state = WAIT;
+                  }
+
+                  // check if is on 苗栗. If so, change state and stay for 3 days
+                  else if (new_location_index == 7) {
+                    players[current_id]->UpdateMiaoliDay(true);
+                    ChangeMiaoliText(miaoli_text, players[current_id]->get_miaoli_day());
+                    state = WAIT;
+                  }
+
+                  // check if is on 臺大醫院. If so, change state and stay for 3 days.
+                  else if (new_location_index == 14) {
+                    players[current_id]->UpdateHospitalDay(true);
+                    ChangeHospitalText(hospital_text, players[current_id]->get_hospital_day());
+                    state = WAIT;
+                  }
+
+                  // check if is on Police and has bribed in kBribeNum days
+                  // if so, teleport to jail and stay for 3 days
+                  else if (new_location_index == 23) {
+                    if (players[current_id]->get_is_bribed()) {
+                      players[current_id]->TeleportToJail();
+                      players[current_id]->UpdateJailDay(true);
+                      ChangeJailText(jail_text, players[current_id]->get_jail_day());
+                      if (current_id == 0) {
+                        cat_sprite.setPosition(GetLocation(0, 21, coordinates));
+                      } else if (current_id == 1) {
+                        prof_sprite.setPosition(GetLocation(1, 21, coordinates));
+                      }
+
+                    }
+                    state = WAIT;
+                  }
+
+                  // else if at news
+                  else if (new_location_index == 5 || new_location_index == 11 || new_location_index == 17 || new_location_index == 27) {
+                    state = NEWS;
+                  }
+                  // else at city
+                  else {
+                    state = CITY;
+                  }
+                } 
               }
               break;
           }
         }
         render_window.clear(sf::Color::Black);
         render_window.draw(board_sprite);
-        render_window.draw(dice_prompt_text);
+        // 如果有特殊情況的話，把那個特殊情況印出來(文字在Dice那邊做修正)
+        if (players[current_id]->get_is_still_in_miaoli()) {
+          render_window.draw(miaoli_text);
+        } else if (players[current_id]->get_is_still_in_jail()) {
+          render_window.draw(jail_text);
+        } else if (players[current_id]->get_is_still_in_hospital()) {
+          render_window.draw(hospital_text);
+        } else {
+          render_window.draw(dice_prompt_text);
+        }
         render_window.draw(tell_round_text);
         render_window.draw(tell_player_and_properties_text);
         render_window.draw(cat_sprite);
@@ -810,14 +821,6 @@ int main(int argc, char **argv) {
         }
         render_window.clear(sf::Color::Black);
         render_window.draw(board_sprite);
-        // 如果有特殊情況的話，把那個特殊情況印出來(文字在Dice那邊做修正)
-        if (players[current_id]->get_is_still_in_miaoli()) {
-          render_window.draw(miaoli_text);
-        } else if (players[current_id]->get_is_still_in_jail()) {
-          render_window.draw(jail_text);
-        } else if (players[current_id]->get_is_still_in_hospital()) {
-          render_window.draw(hospital_text);
-        }
         render_window.draw(next_player_prompt);  // "press space to give the dice to the other player"
         render_window.draw(tell_round_text);
         render_window.draw(tell_player_and_properties_text);
