@@ -677,11 +677,11 @@ int main(int argc, char **argv) {
         render_window.clear(sf::Color::Black);
         render_window.draw(board_sprite);
         // 如果有特殊情況的話，把那個特殊情況印出來(文字在Dice那邊做修正)
-        if (players[current_id]->get_is_still_in_miaoli()) {
+        if (players[current_id]->get_miaoli_day() > 1) {
           render_window.draw(miaoli_text);
-        } else if (players[current_id]->get_is_still_in_jail()) {
+        } else if (players[current_id]->get_jail_day() > 1) {
           render_window.draw(jail_text);
-        } else if (players[current_id]->get_is_still_in_hospital()) {
+        } else if (players[current_id]->get_hospital_day() > 1) {
           render_window.draw(hospital_text);
         } else {
           render_window.draw(dice_prompt_text);
