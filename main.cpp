@@ -360,7 +360,7 @@ void ChangeTellPlayerAndPropertiesText(sf::Text &text, const Player *player) {
 
 // 更新抹黑
 void ChangeMoHeiText(sf::Text &text, const Location* loc) {
-  std::string mo_hei_string = "All the people in " + loc->get_name() + " believe that your opponent is a bitch.\nYou won all the votes in " + loc->get_name() + ".";
+  std::string mo_hei_string = "All the people in " + loc->get_name() + " are convinced that your opponent is a bitch.\nYou win all the votes in " + loc->get_name() + ".";
   text.setString(mo_hei_string);
 }
 
@@ -396,7 +396,7 @@ sf::Vector2f GetLocation(int player_num, int location_index, float coordinates[]
 }
 
 int main(int argc, char **argv) {
-  sf::RenderWindow render_window(sf::VideoMode(kWindowWidth, kWindowHeight), "cute cattt", sf::Style::Titlebar | sf::Style::Close);
+  sf::RenderWindow render_window(sf::VideoMode(kWindowWidth, kWindowHeight), "CuteCat VS LingChieh - Da Election, 2014", sf::Style::Titlebar | sf::Style::Close);
   sf::Event ev;
 
   // 目前隨便放的字體
