@@ -45,7 +45,7 @@ const int kPlayerHeight = 130;
 
 // Game Setting Consts
 const int kPlayerNum = 2;
-const int kTotalRounds = 20;
+const int kTotalRounds = 3;
 const int kLocationIndexNum = 28;  // num of total locations
 const int kStartMoney = 200000;
 const int kBribeNum = 10;    // 遇到警察會回溯幾天看你有沒有賄選
@@ -55,7 +55,7 @@ const int kHospitalNum = 3;  // 你會在醫院卡幾天
 
 // Const Earn Money Consts
 const int kMoneyEachRound = 200000;      // 每回合增加多少錢
-const int kMoneyEarnedAtStart = 500000;  // 一開始你拿到多少錢
+const int kMoneyEarnedAtStart = 0;  // 一開始你拿到多少錢
 
 // Const Spend Money Consts
 const int kBaiPiaoSpendMoney = 100000;  // 拜票所花的錢
@@ -406,6 +406,12 @@ int main(int argc, char **argv) {
   sf::Text next_player_prompt;
   BuildText(next_player_prompt, big_font, "Press \"Space\" to pass the dice \n to the next player!", 45, sf::Color::Blue, sf::Text::Regular, 500, 294);
 
+  // NEWS setup
+  // Option Mo Hei
+  sf::Text option_mo_hei_text;
+  BuildText(option_mo_hei_text, big_font, "Do you want to defame your opponent? (Y/N)", 30, sf::Color::Blue, sf::Text::Regular, 500, 287);
+
+
   // BackGround Setup
 
   //地圖
@@ -699,9 +705,6 @@ int main(int argc, char **argv) {
             render_window.close();
           } else if (ev.type == sf::Event::EventType::KeyPressed) {
             switch (ev.key.code) {
-              case sf::Keyboard::Escape:  // 按escape的話直接強迫結束
-                state = END;
-                break;
               case sf::Keyboard::Num1:
                 if (players[current_id]->get_money() < kBaiPiaoSpendMoney) {
                   show_error_message = true;
@@ -750,12 +753,12 @@ int main(int argc, char **argv) {
             render_window.close();
           } else if (ev.type == sf::Event::EventType::KeyPressed) {
             switch (ev.key.code) {
-              case sf::Keyboard::Escape:
-                state = END;
-                break;
-              case sf::Keyboard::Space:
+              case sf::Keyboard::N:
                 state = WAIT;
                 break;
+              case sf::Keyboard::Y:
+                break;
+              
             }
           }
         }
@@ -764,6 +767,7 @@ int main(int argc, char **argv) {
         render_window.draw(tell_round_text);
         render_window.draw(tell_player_and_properties_text);
         render_window.draw(tell_location_text);  // eg. "你現在在新聞台!"
+        render_window.draw(option_mo_hei_text); // "do you want to defame your opponent?(Y/N)"
         render_window.draw(cat_sprite);
         render_window.draw(prof_sprite);
         render_window.display();
@@ -783,7 +787,7 @@ int main(int argc, char **argv) {
                   current_round++;
                 }
                 // 每回合給錢
-                if (!players[current_id]->get_hospital_day() > 1 && !players[current_id]->get_jail_day() > 1 && !players[current_id]->get_miaoli_day() > 1) {
+                if (!(players[current_id]->get_hospital_day() > 1) && !(players[current_id]->get_jail_day()) > 1 && !(players[current_id]->get_miaoli_day()) > 1) {
                     players[current_id]->UpdateMoney(kMoneyEachRound);
                 }
 
