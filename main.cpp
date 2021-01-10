@@ -4,18 +4,14 @@
 #include <iostream>
 #include <string>
 
-// 注意：我們每回合都會給200000，所以如果你花100000拜票然後看到錢增加100000的話，這不是bug
 // Style: https://google.github.io/styleguide/cppguide.html , 但enum用全大寫因為我們沒用macro，然後註解也不限長度
 /*
 待辦事項： (依照重要性排列)
-  - 把文字的位置放好
-  - 把文字的大小改好
-  - !!!還有新聞台到底要幹嘛啦!!!
-  - 把字體轉中文
-  - 把round X 改成 距離選舉還有 kTotalNum - X 天
-  - 增加賄賂選項並修改按下去的按鈕
-  - 增加抹黑選項並修改按下去的按鈕
+  - 增加新聞台抹黑（同一條路上隨機一地自己得票率變100）
+  - 確認警察有沒有真的檢查到賄選
   - 增加輸入名字的環節
+  - 踏到特殊地點跳出的訊息
+  - 踏到綠島時錢減半
 已完成：(依照時間排列)
   - 讓棋子出現在鍵盤上
   - 讓棋子依據dice而移動 (已經寫好取座標函數以及座標庫)
@@ -296,17 +292,6 @@ void BuildText(sf::Text &text, const sf::Font &font, const sf::String &content, 
   text.setPosition(x, y);
 }
 
-void BuildText(sf::Text &text, const sf::Font &font, const std::wstring &content, unsigned int size,
-               const sf::Color &color, sf::Uint32 style, float x, float y) {
-  text.setFont(font);
-  text.setString(content);
-  text.setCharacterSize(size);
-  text.setFillColor(color);
-  text.setStyle(style);
-  text.setOrigin(floor(text.getLocalBounds().width) / 2, floor(text.getLocalBounds().height) / 2);
-  text.setPosition(x, y);
-}
-
 // 更新dice的文字
 void ChangeDiceText(sf::Text &text, const int dice_number) {
   std::string dice_string = "You rolled " + std::to_string(dice_number) + " steps";
@@ -424,11 +409,13 @@ int main(int argc, char **argv) {
   sf::Text miaoli_text;
   BuildText(miaoli_text, big_font, "You have 3 days until the quarantine ends.", 40, sf::Color::Red, sf::Text::Regular, 500, 294);
   sf::Text entering_miaoli_text;  //還沒搞定怎麼顯示出來
-  BuildText(entering_miaoli_text, big_font, "You have entered the territory of the independent country \"MiaoLi\",\nand everyone going abroad should be quarantined due to the COVID-19 pandemic.\nStay here for three days.", 40, sf::Color::Red, sf::Text::Regular, 500, 294);
+  BuildText(entering_miaoli_text, big_font, "You have entered the territory of The MiaoLi Empire.\nEveryone who goes abroad during the COVID-19 pandemic should be quarantined.\nStay here for three days.", 40, sf::Color::Red, sf::Text::Regular, 500, 294);
 
   // Jail Text (optional)
   sf::Text jail_text;
   BuildText(jail_text, big_font, "You have 3 days until you leave the jail.", 40, sf::Color::Red, sf::Text::Regular, 500, 294);
+  sf::Text entering_jail_text;
+  BuildText(entering_jail_text, big_font, "                      Welcome to Lyudao!                      \nYou spend half of your properties to go sightseeing on Lyudao.", 40, sf::Color::Red, sf::Text::Regular, 500, 294);
 
   // Hospital Text (optional)
   sf::Text hospital_text;
@@ -463,7 +450,7 @@ int main(int argc, char **argv) {
   // NEWS setup
   // Option Mo Hei
   sf::Text option_mo_hei_text;
-  BuildText(option_mo_hei_text, big_font, "Do you want to defame your opponent? (-400,000 dollars)\n(Press\"Y\"for Yes / Press\"N\"for No)", 30, sf::Color::Blue, sf::Text::Regular, 500, 287);
+  BuildText(option_mo_hei_text, big_font, "Do you want to defame your opponent? (-400,000 dollars)\n(Press \"Y\" for Yes / Press \"N\" for No)", 36, sf::Color::Blue, sf::Text::Regular, 500, 287);
 
   // BackGround Setup
 
@@ -620,6 +607,7 @@ int main(int argc, char **argv) {
   int one = 0;            // total votes in the end of player[1]
   int winner = kPlayerNum;
   bool show_error_message = false;
+  bool first_entered_miaoli = false, jail_for_sightseeing = false;
   while (render_window.isOpen()) {
     switch (state) {
       case MENU:
@@ -655,6 +643,8 @@ int main(int argc, char **argv) {
                 players[current_id]->UpdateJailDay();
                 players[current_id]->UpdateHospitalDay();
                 players[current_id]->UpdateBribeDay();
+                jail_for_sightseeing = false;
+                first_entered_miaoli = false;
 
                 // 更新固定現實的提示(回合，玩家，錢)
                 ChangeTellRoundText(tell_round_text, current_round + 1);
@@ -695,6 +685,7 @@ int main(int argc, char **argv) {
                   else if (new_location_index == 7) {
                     players[current_id]->UpdateMiaoliDay(true);
                     ChangeMiaoliText(miaoli_text, players[current_id]->get_miaoli_day());
+                    first_entered_miaoli = true;
                     state = WAIT;
                   }
 
@@ -704,12 +695,13 @@ int main(int argc, char **argv) {
                     ChangeHospitalText(hospital_text, players[current_id]->get_hospital_day());
                     state = WAIT;
                   }
-
                   // check if is on 綠島監獄. if so, change state and money /= 2
                   else if (new_location_index == 21) {
+                    jail_for_sightseeing = true;
                     players[current_id]->UpdateMoney(-players[current_id]->get_money() / 2);
                     state = WAIT;
                   }
+
 
                   // check if is on Police and has bribed in kBribeNum days
                   // if so, teleport to jail and stay for 3 days
@@ -835,6 +827,7 @@ int main(int argc, char **argv) {
           } else if (ev.type == sf::Event::EventType::KeyPressed) {
             switch (ev.key.code) {
               case sf::Keyboard::Space:
+
                 state = WAIT;
                 break;
               case sf::Keyboard::N:
@@ -913,6 +906,10 @@ int main(int argc, char **argv) {
         render_window.draw(prof_sprite);
         if (city_or_not(players[current_id]->get_location_index()))
           render_window.draw(polls_text);
+        else if (first_entered_miaoli)
+          render_window.draw(entering_miaoli_text);
+        else if (jail_for_sightseeing)
+          render_window.draw(entering_jail_text);
         render_window.display();
         break;
 
@@ -940,7 +937,7 @@ int main(int argc, char **argv) {
         render_window.draw(winner_text);  // eg. "winner is XXX. \n <player0> has xx votes.\n <player1> has yy votes."
         render_window.draw(result_text);
         render_window.display();
-        break; 
+        break;
     }
   }
 
