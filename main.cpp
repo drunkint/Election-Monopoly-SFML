@@ -685,6 +685,7 @@ int main(int argc, char **argv) {
                   ChangeMiaoliText(miaoli_text, players[current_id]->get_miaoli_day());
                   ChangeJailText(jail_text, players[current_id]->get_jail_day());
                   ChangeHospitalText(hospital_text, players[current_id]->get_hospital_day());
+                  players[current_id]->UpdateMoney(-kMoneyEachRound);
                   state = WAIT;
                 } else {
                   std::cout << "dice rolled" << std::endl;
