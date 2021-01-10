@@ -56,6 +56,7 @@ const int kMoneyEarnedAtStart = 500000;  // 一開始你拿到多少錢
 // Const Spend Money Consts
 const int kBaiPiaoSpendMoney = 100000;  // 拜票所花的錢
 const int kBribeSpendMoney = 1000000;   // 賄選所花的錢
+const int kMoheiSpendMoney = 400000;
 
 // Random Consts
 const int kDiceMin = 1;
@@ -80,6 +81,10 @@ int RandomBaiPiaoVote() {
 // 回傳隨機演講獲得的錢
 int RandomSpeechGetMoney() {
   return rand() % kSpeechGetMoneyRange + kSpeechGetMoneyMin;
+}
+
+int RandomLocationIndex() {
+  return rand() % kLocationIndexNum;
 }
 
 class Player {
@@ -233,6 +238,12 @@ class Location {
   }
 
   // Accessors
+  // 回傳這個地區的名字
+  std::string get_name() const {
+    return name_;
+  }
+
+
   // 回傳這個地區的總票數(可以拿的)
   int get_votes_in_this_region() const {
     return votes_in_this_region_;
@@ -276,6 +287,13 @@ class Location {
     vote_[std::abs(1 - player->get_player_index())] -= delta_vote;
     player->UpdateMoney(-kBribeSpendMoney);
     player->UpdateBribeDay(true);
+  }
+
+  // updates the money of the player and the votes of the player in this location if mohei
+  void MoHei(Player *player) {
+    vote_[player->get_player_index()] = 100;
+    vote_[std::abs(1 - player->get_player_index())] = 0;
+    player->UpdateMoney(-kMoheiSpendMoney);
   }
 };
 
@@ -340,6 +358,12 @@ void ChangeTellPlayerAndPropertiesText(sf::Text &text, const Player *player) {
   text.setString(p_and_p_string);
 }
 
+// 更新抹黑
+void ChangeMoHeiText(sf::Text &text, const Location* loc) {
+  std::string mo_hei_string = "All the people in " + loc->get_name() + " believe that your opponent is a bitch.\nYou won all the votes in " + loc->get_name() + ".";
+  text.setString(mo_hei_string);
+}
+
 // 檢查此地是不是有票數的一般城市
 bool city_or_not(const int location_index) {
   switch (location_index) {
@@ -395,7 +419,7 @@ int main(int argc, char **argv) {
 
   // Dice Prompt Text
   sf::Text dice_prompt_text;
-  BuildText(dice_prompt_text, big_font, "Press \"Space\" to roll the dice!", 44, sf::Color::Blue, sf::Text::Bold, 500, 294);
+  BuildText(dice_prompt_text, big_font, "Press \"Space\" to roll the dice!", 44, sf::Color::Blue, sf::Text::Bold, 500, 365);
 
   // Dice Text
   sf::Text dice_text;
@@ -409,13 +433,13 @@ int main(int argc, char **argv) {
   sf::Text miaoli_text;
   BuildText(miaoli_text, big_font, "You have 3 days until the quarantine ends.", 40, sf::Color::Red, sf::Text::Regular, 500, 294);
   sf::Text entering_miaoli_text;  //還沒搞定怎麼顯示出來
-  BuildText(entering_miaoli_text, big_font, "You have entered the territory of The MiaoLi Empire.\nEveryone who goes abroad during the COVID-19 pandemic should be quarantined.\nStay here for three days.", 40, sf::Color::Red, sf::Text::Regular, 500, 294);
+  BuildText(entering_miaoli_text, big_font, "You have entered the territory of The MiaoLi Empire.\nEveryone who goes abroad during the COVID-19 pandemic\nshould be quarantined. Stay here for three days.", 36, sf::Color::Red, sf::Text::Regular, 505, 262);
 
   // Jail Text (optional)
   sf::Text jail_text;
   BuildText(jail_text, big_font, "You have 3 days until you leave the jail.", 40, sf::Color::Red, sf::Text::Regular, 500, 294);
   sf::Text entering_jail_text;
-  BuildText(entering_jail_text, big_font, "                      Welcome to Lyudao!                      \nYou spend half of your properties to go sightseeing on Lyudao.", 40, sf::Color::Red, sf::Text::Regular, 500, 294);
+  BuildText(entering_jail_text, big_font, "You spend half of your properties\n       to go sightseeing on Lyudao.\n              Welcome to Lyudao!", 40, sf::Color::Red, sf::Text::Regular, 505, 262);
 
   // Hospital Text (optional)
   sf::Text hospital_text;
@@ -429,28 +453,31 @@ int main(int argc, char **argv) {
   // CITY setup
   // Option Bai Piao
   sf::Text option_bai_piao_text;
-  BuildText(option_bai_piao_text, big_font, "1. Beg for votes door-to-door. (-100,000 dollars)", 36, sf::Color::Blue, sf::Text::Regular, 500, 210);
+  BuildText(option_bai_piao_text, big_font, "1. Beg for votes door-to-door. (-100,000 dollars)", 40, sf::Color::Blue, sf::Text::Regular, 500, 210);
 
   // Error Message
   sf::Text error_message_text;
-  BuildText(error_message_text, big_font, "You don't have enough money!", 38, sf::Color::Red, sf::Text::Bold, 500, 370);
+  BuildText(error_message_text, big_font, "You don't have enough money!", 40, sf::Color::Red, sf::Text::Bold, 500, 370);
 
   // Option Speech
   sf::Text option_speech_text;
-  BuildText(option_speech_text, big_font, "2. Give a fundraising speech. (No cost)", 36, sf::Color::Blue, sf::Text::Regular, 500, 250);
+  BuildText(option_speech_text, big_font, "2. Give a fundraising speech. (No cost)", 40, sf::Color::Blue, sf::Text::Regular, 500, 260);
 
   // Option Hui xuan
   sf::Text option_bribe_text;
-  BuildText(option_bribe_text, big_font, "3. Bribe the citizens. (-1,000,000 dollars)", 36, sf::Color::Blue, sf::Text::Regular, 500, 290);
+  BuildText(option_bribe_text, big_font, "3. Bribe the citizens. (-1,000,000 dollars)", 40, sf::Color::Blue, sf::Text::Regular, 500, 310);
 
   // WAIT setup
   sf::Text next_player_prompt;
-  BuildText(next_player_prompt, big_font, "Press \"Space\" to pass the dice to the next player!", 42, sf::Color::Blue, sf::Text::Regular, 500, 294);
+  BuildText(next_player_prompt, big_font, "Press \"Space\" to pass the dice to the next player!", 42, sf::Color::Blue, sf::Text::Regular, 500, 365);
 
   // NEWS setup
   // Option Mo Hei
   sf::Text option_mo_hei_text;
-  BuildText(option_mo_hei_text, big_font, "Do you want to defame your opponent? (-400,000 dollars)\n(Press \"Y\" for Yes / Press \"N\" for No)", 36, sf::Color::Blue, sf::Text::Regular, 500, 287);
+  BuildText(option_mo_hei_text, big_font, "Do you want to defame your opponent? (-400,000 dollars)\n                         Press \"Y\" for Yes / Press \"N\" for No", 36, sf::Color::Blue, sf::Text::Regular, 500, 287);
+
+  sf::Text believe_mo_hei_text;
+  BuildText(believe_mo_hei_text, big_font, "", 25, sf::Color::Blue, sf::Text::Regular, 500, 260);
 
   // BackGround Setup
 
@@ -608,6 +635,8 @@ int main(int argc, char **argv) {
   int winner = kPlayerNum;
   bool show_error_message = false;
   bool first_entered_miaoli = false, jail_for_sightseeing = false;
+  bool mo_hei = false;
+  int rand_index = 0;
   while (render_window.isOpen()) {
     switch (state) {
       case MENU:
@@ -701,7 +730,6 @@ int main(int argc, char **argv) {
                     players[current_id]->UpdateMoney(-players[current_id]->get_money() / 2);
                     state = WAIT;
                   }
-
 
                   // check if is on Police and has bribed in kBribeNum days
                   // if so, teleport to jail and stay for 3 days
@@ -826,14 +854,24 @@ int main(int argc, char **argv) {
             render_window.close();
           } else if (ev.type == sf::Event::EventType::KeyPressed) {
             switch (ev.key.code) {
-              case sf::Keyboard::Space:
-
-                state = WAIT;
+              case sf::Keyboard::Y:
+                if (players[current_id]->get_money() < kMoheiSpendMoney) {
+                  show_error_message = true;
+                } else {
+                  do {
+                    rand_index = RandomLocationIndex();
+                  } while (!city_or_not(rand_index));
+                  locations[rand_index]->MoHei(players[current_id]);
+                  ChangeTellPlayerAndPropertiesText(tell_player_and_properties_text, players[current_id]);
+                  ChangeMoHeiText(believe_mo_hei_text, locations[rand_index]);
+                  mo_hei = true;
+                  show_error_message = false;
+                  state = WAIT;
+                }
                 break;
               case sf::Keyboard::N:
+                show_error_message = false;
                 state = WAIT;
-                break;
-              case sf::Keyboard::Y:
                 break;
             }
           }
@@ -847,6 +885,9 @@ int main(int argc, char **argv) {
         render_window.draw(option_mo_hei_text);  // "do you want to defame your opponent?(Y/N)"
         render_window.draw(cat_sprite);
         render_window.draw(prof_sprite);
+        if (show_error_message) {
+          render_window.draw(error_message_text);
+        }
         render_window.display();
         break;
 
@@ -855,6 +896,7 @@ int main(int argc, char **argv) {
           if (ev.type == sf::Event::EventType::Closed) {
             render_window.close();
           } else if (ev.type == sf::Event::EventType::KeyPressed) {
+            mo_hei = false;
             switch (ev.key.code) {
               case sf::Keyboard::Space:
                 std::cout << "round: " << current_round + 1 << std::endl;       // 方便debug
@@ -910,6 +952,8 @@ int main(int argc, char **argv) {
           render_window.draw(entering_miaoli_text);
         else if (jail_for_sightseeing)
           render_window.draw(entering_jail_text);
+        else if (mo_hei)
+          render_window.draw(believe_mo_hei_text);
         render_window.display();
         break;
 
