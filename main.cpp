@@ -59,7 +59,7 @@ const int kMoneyEarnedAtStart = 500000;  // 一開始你拿到多少錢
 
 // Const Spend Money Consts
 const int kBaiPiaoSpendMoney = 100000;  // 拜票所花的錢
-const int kBribeSpendMoney = 1000000; // 賄選所花的錢
+const int kBribeSpendMoney = 1000000;   // 賄選所花的錢
 
 // Random Consts
 const int kDiceMin = 1;
@@ -241,6 +241,12 @@ class Location {
   int get_votes_in_this_region() const {
     return votes_in_this_region_;
   }
+
+  // 回傳玩家在這個地區的得票率
+  int get_votes_of_single_player(int playerNum) const {
+    return vote_[playerNum];
+  };
+
   // 回傳這個地區目前的贏家
   int get_current_winner() {  // assuming 2 players
     if (vote_[0] > vote_[1])
@@ -310,10 +316,13 @@ void ChangeDiceText(sf::Text &text, const int dice_number) {
 // 更新地點告知的文字
 void ChangeTellLocationText(sf::Text &text, const int location_index, const std::string *list_of_locations) {
   std::string location_string = "You are now at " + list_of_locations[location_index];
-  text.setFillColor(sf::Color::Red);
   text.setString(location_string);
   text.setPosition(200, 640);
-  text.setCharacterSize(40);
+}
+
+void ChangeLocalPollsText(sf::Text &text, const Location *location) {
+  std::string polls_string = "Local polls : " + std::to_string(location->get_votes_of_single_player(0)) + " | " + std::to_string(location->get_votes_of_single_player(1));
+  text.setString(polls_string);
 }
 
 // 更新"你還剩下幾天才能離開苗栗"
@@ -342,8 +351,33 @@ void ChangeTellRoundText(sf::Text &text, const int round) {
 
 // 更新"現在是誰在玩" 以及 "他有多少錢"
 void ChangeTellPlayerAndPropertiesText(sf::Text &text, const Player *player) {
-  std::string p_and_p_string = "Player: " + player->get_player_name() + "\n" + "$ " + std::to_string(player->get_money()) + " (NTD)";
+  std::string p_and_p_string = "Player " + player->get_player_name() + ": $ " + std::to_string(player->get_money()) + " (NTD)";
   text.setString(p_and_p_string);
+}
+
+// 檢查此地是不是有票數的一般城市
+bool city_or_not(const int location_index) {
+  switch (location_index) {
+    case 0:
+      return false;
+    case 5:
+      return false;
+    case 7:
+      return false;
+    case 11:
+      return false;
+    case 14:
+      return false;
+    case 17:
+      return false;
+    case 21:
+      return false;
+    case 23:
+      return false;
+    case 27:
+      return false;
+  }
+  return true;
 }
 
 // function that finds the coordinates of players
@@ -382,9 +416,15 @@ int main(int argc, char **argv) {
   sf::Text dice_text;
   BuildText(dice_text, big_font, "", 40, sf::Color::Red, sf::Text::Regular, 200, 590);
 
+  // Local polls Text
+  sf::Text polls_text;
+  BuildText(polls_text, big_font, "", 40, sf::Color::Magenta, sf::Text::Regular, 200, 695);
+
   // Miao Li Text (optional)
   sf::Text miaoli_text;
   BuildText(miaoli_text, big_font, "You have 3 days until the quarantine ends.", 40, sf::Color::Red, sf::Text::Regular, 500, 294);
+  sf::Text entering_miaoli_text;  //還沒搞定怎麼顯示出來
+  BuildText(entering_miaoli_text, big_font, "You have entered the territory of the independent country \"MiaoLi\",\nand everyone going abroad should be quarantined due to the COVID-19 pandemic.\nStay here for three days.", 40, sf::Color::Red, sf::Text::Regular, 500, 294);
 
   // Jail Text (optional)
   sf::Text jail_text;
@@ -397,12 +437,12 @@ int main(int argc, char **argv) {
   // CITY and NEWS setup
   // Tell Location Text
   sf::Text tell_location_text;
-  BuildText(tell_location_text, big_font, "", 32, sf::Color::Red, sf::Text::Regular, 220, 650);
+  BuildText(tell_location_text, big_font, "", 40, sf::Color::Red, sf::Text::Regular, 220, 650);
 
   // CITY setup
   // Option Bai Piao
   sf::Text option_bai_piao_text;
-  BuildText(option_bai_piao_text, big_font, "1. Beg for votes door-to-door (-10,0000 dollars).", 36, sf::Color::Blue, sf::Text::Regular, 500, 210);
+  BuildText(option_bai_piao_text, big_font, "1. Beg for votes door-to-door. (-100,000 dollars)", 36, sf::Color::Blue, sf::Text::Regular, 500, 210);
 
   // Error Message
   sf::Text error_message_text;
@@ -410,21 +450,20 @@ int main(int argc, char **argv) {
 
   // Option Speech
   sf::Text option_speech_text;
-  BuildText(option_speech_text, big_font, "2. Give a fundraising speech (No cost).", 36, sf::Color::Blue, sf::Text::Regular, 500, 250);
+  BuildText(option_speech_text, big_font, "2. Give a fundraising speech. (No cost)", 36, sf::Color::Blue, sf::Text::Regular, 500, 250);
 
   // Option Hui xuan
   sf::Text option_bribe_text;
-  BuildText(option_bribe_text, big_font, "3. Bribe", 36, sf::Color::Blue, sf::Text::Regular, 500, 290);
+  BuildText(option_bribe_text, big_font, "3. Bribe the citizens. (-1,000,000 dollars)", 36, sf::Color::Blue, sf::Text::Regular, 500, 290);
 
   // WAIT setup
   sf::Text next_player_prompt;
-  BuildText(next_player_prompt, big_font, "Press \"Space\" to pass the dice \n to the next player!", 45, sf::Color::Blue, sf::Text::Regular, 500, 294);
+  BuildText(next_player_prompt, big_font, "Press \"Space\" to pass the dice to the next player!", 42, sf::Color::Blue, sf::Text::Regular, 500, 294);
 
   // NEWS setup
   // Option Mo Hei
   sf::Text option_mo_hei_text;
-  BuildText(option_mo_hei_text, big_font, "Do you want to defame your opponent? (Y/N)", 30, sf::Color::Blue, sf::Text::Regular, 500, 287);
-
+  BuildText(option_mo_hei_text, big_font, "Do you want to defame your opponent? (-400,000 dollars)\n(Press\"Y\"for Yes / Press\"N\"for No)", 30, sf::Color::Blue, sf::Text::Regular, 500, 287);
 
   // BackGround Setup
 
@@ -564,8 +603,8 @@ int main(int argc, char **argv) {
 
   // tell player and properties text
   sf::Text tell_player_and_properties_text;
-  std::string p_and_p_init = "Player: " + players[0]->get_player_name() + "\n" + "$ " + std::to_string(players[0]->get_money()) + " (NTD)";
-  BuildText(tell_player_and_properties_text, big_font, p_and_p_init, 40, sf::Color::Black, sf::Text::Regular, 290, 740);
+  std::string p_and_p_init = "Player " + players[0]->get_player_name() + ": $ " + std::to_string(players[0]->get_money()) + " (NTD)";
+  BuildText(tell_player_and_properties_text, big_font, p_and_p_init, 40, sf::Color::Black, sf::Text::Regular, 363, 770);
 
   // tell who is the winner(set the string later when the game ends), and the game result
   sf::Text winner_text;
@@ -639,6 +678,7 @@ int main(int argc, char **argv) {
                   int new_location_index = players[current_id]->get_location_index();  // indicates the location of the player in this round
                   ChangeDiceText(dice_text, dice_value);
                   ChangeTellLocationText(tell_location_text, new_location_index, list_of_location_names);
+                  ChangeLocalPollsText(polls_text, locations[new_location_index]);
                   if (current_id == 0) {
                     cat_sprite.setPosition(GetLocation(0, new_location_index, coordinates));
                   } else if (current_id == 1) {
@@ -662,6 +702,12 @@ int main(int argc, char **argv) {
                   else if (new_location_index == 14) {
                     players[current_id]->UpdateHospitalDay(true);
                     ChangeHospitalText(hospital_text, players[current_id]->get_hospital_day());
+                    state = WAIT;
+                  }
+
+                  // check if is on 綠島監獄. if so, change state and money /= 2
+                  else if (new_location_index == 21) {
+                    players[current_id]->UpdateMoney(-players[current_id]->get_money() / 2);
                     state = WAIT;
                   }
 
@@ -731,6 +777,7 @@ int main(int argc, char **argv) {
                   // 更新文字
                   ChangeTellRoundText(tell_round_text, current_round + 1);
                   ChangeTellPlayerAndPropertiesText(tell_player_and_properties_text, players[current_id]);
+                  ChangeLocalPollsText(polls_text, locations[players[current_id]->get_location_index()]);
                   show_error_message = false;
                   state = WAIT;
                 }
@@ -741,6 +788,7 @@ int main(int argc, char **argv) {
                 // 更新文字
                 ChangeTellRoundText(tell_round_text, current_round + 1);
                 ChangeTellPlayerAndPropertiesText(tell_player_and_properties_text, players[current_id]);
+                ChangeLocalPollsText(polls_text, locations[players[current_id]->get_location_index()]);
                 show_error_message = false;
                 state = WAIT;
                 break;
@@ -748,11 +796,12 @@ int main(int argc, char **argv) {
                 if (players[current_id]->get_money() < kBribeSpendMoney) {
                   show_error_message = true;
                 } else {
-                  // 呼叫拜票函數
+                  // 呼叫賄選函數
                   locations[players[current_id]->get_location_index()]->Bribe(players[current_id]);
                   // 更新文字
                   ChangeTellRoundText(tell_round_text, current_round + 1);
                   ChangeTellPlayerAndPropertiesText(tell_player_and_properties_text, players[current_id]);
+                  ChangeLocalPollsText(polls_text, locations[players[current_id]->get_location_index()]);
                   show_error_message = false;
                   state = WAIT;
                 }
@@ -765,7 +814,8 @@ int main(int argc, char **argv) {
         render_window.draw(dice_text);
         render_window.draw(tell_round_text);
         render_window.draw(tell_player_and_properties_text);
-        render_window.draw(tell_location_text);    // eg. "你現在在苗栗!"
+        render_window.draw(tell_location_text);  // eg. "你現在在苗栗!"
+        render_window.draw(polls_text);
         render_window.draw(option_bai_piao_text);  // eg. "1. 支付100萬，增取5~10%的選票"
         render_window.draw(option_speech_text);    // eg. "2. 獲得10~30萬台幣"
         render_window.draw(option_bribe_text);
@@ -792,9 +842,6 @@ int main(int argc, char **argv) {
                 break;
               case sf::Keyboard::Y:
                 break;
-              
-
-
             }
           }
         }
@@ -804,7 +851,7 @@ int main(int argc, char **argv) {
         render_window.draw(tell_player_and_properties_text);
         render_window.draw(dice_text);
         render_window.draw(tell_location_text);  // eg. "你現在在新聞台!"
-        render_window.draw(option_mo_hei_text); // "do you want to defame your opponent?(Y/N)"
+        render_window.draw(option_mo_hei_text);  // "do you want to defame your opponent?(Y/N)"
         render_window.draw(cat_sprite);
         render_window.draw(prof_sprite);
         render_window.display();
@@ -864,6 +911,8 @@ int main(int argc, char **argv) {
         render_window.draw(tell_player_and_properties_text);
         render_window.draw(cat_sprite);
         render_window.draw(prof_sprite);
+        if (city_or_not(players[current_id]->get_location_index()))
+          render_window.draw(polls_text);
         render_window.display();
         break;
 
@@ -891,7 +940,7 @@ int main(int argc, char **argv) {
         render_window.draw(winner_text);  // eg. "winner is XXX. \n <player0> has xx votes.\n <player1> has yy votes."
         render_window.draw(result_text);
         render_window.display();
-        break;
+        break; 
     }
   }
 
