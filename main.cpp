@@ -59,6 +59,7 @@ const int kMoneyEarnedAtStart = 500000;  // 一開始你拿到多少錢
 
 // Const Spend Money Consts
 const int kBaiPiaoSpendMoney = 100000;  // 拜票所花的錢
+const int kBribeSpendMoney = 1000000; // 賄選所花的錢
 
 // Random Consts
 const int kDiceMin = 1;
@@ -260,10 +261,19 @@ class Location {
     player->UpdateMoney(-kBaiPiaoSpendMoney);
   }
 
-  // updates the money of the plaer and the votes of the player in this location if speech
+  // updates the money of the player and the votes of the player in this location if speech
   void Speech(Player *player) {
     int delta_money = RandomSpeechGetMoney();
     player->UpdateMoney(delta_money);
+  }
+
+  // updates the money of the player and the votes of the player in this location if huixuan
+  void Bribe(Player *player) {
+    int delta_vote = vote_[player->get_player_index()] / 2;
+    vote_[player->get_player_index()] += delta_vote;
+    vote_[std::abs(1 - player->get_player_index())] -= delta_vote;
+    player->UpdateMoney(-kBribeSpendMoney);
+    player->UpdateBribeDay(true);
   }
 };
 
@@ -401,6 +411,10 @@ int main(int argc, char **argv) {
   // Option Speech
   sf::Text option_speech_text;
   BuildText(option_speech_text, big_font, "2. Give a fundraising speech (No cost).", 36, sf::Color::Blue, sf::Text::Regular, 500, 250);
+
+  // Option Hui xuan
+  sf::Text option_bribe_text;
+  BuildText(option_bribe_text, big_font, "3. Bribe", 36, sf::Color::Blue, sf::Text::Regular, 500, 290);
 
   // WAIT setup
   sf::Text next_player_prompt;
@@ -730,6 +744,19 @@ int main(int argc, char **argv) {
                 show_error_message = false;
                 state = WAIT;
                 break;
+              case sf::Keyboard::Num3:
+                if (players[current_id]->get_money() < kBribeSpendMoney) {
+                  show_error_message = true;
+                } else {
+                  // 呼叫拜票函數
+                  locations[players[current_id]->get_location_index()]->Bribe(players[current_id]);
+                  // 更新文字
+                  ChangeTellRoundText(tell_round_text, current_round + 1);
+                  ChangeTellPlayerAndPropertiesText(tell_player_and_properties_text, players[current_id]);
+                  show_error_message = false;
+                  state = WAIT;
+                }
+                break;
             }
           }
         }
@@ -741,6 +768,7 @@ int main(int argc, char **argv) {
         render_window.draw(tell_location_text);    // eg. "你現在在苗栗!"
         render_window.draw(option_bai_piao_text);  // eg. "1. 支付100萬，增取5~10%的選票"
         render_window.draw(option_speech_text);    // eg. "2. 獲得10~30萬台幣"
+        render_window.draw(option_bribe_text);
         render_window.draw(cat_sprite);
         render_window.draw(prof_sprite);
         if (show_error_message) {
