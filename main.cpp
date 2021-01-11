@@ -1,4 +1,3 @@
-
 #include <SFML/Graphics.hpp>
 #include <cmath>
 #include <ctime>
@@ -36,10 +35,11 @@ enum State {  // 這告訴我們現在在哪個狀況下 然後main 就會跑相對應的程式
 } state;
 
 // Size consts
-const int kWindowWidth = 1000;
-const int kWindowHeight = 1000;
-const int kPlayerWidth = 130;
-const int kPlayerHeight = 130;
+const float scale = 1;
+const int kWindowWidth = 1000 * scale;
+const int kWindowHeight = 1000 * scale;
+const int kPlayerWidth = 130 * scale;
+const int kPlayerHeight = 130 * scale;
 
 // Game Setting Consts
 const int kPlayerNum = 2;
@@ -297,7 +297,7 @@ class Location {
 
   // updates the money of the player and the votes of the player in this location if huixuan
   void Bribe(Player *player) {
-    int delta_vote = vote_[player->get_player_index()] / 2;
+    int delta_vote = RandomBribeVote();
     vote_[player->get_player_index()] += delta_vote;
     vote_[std::abs(1 - player->get_player_index())] -= delta_vote;
     if (vote_[0] > 100) {
@@ -325,11 +325,11 @@ void BuildText(sf::Text &text, const sf::Font &font, const sf::String &content, 
                const sf::Color &color, sf::Uint32 style, float x, float y) {
   text.setFont(font);
   text.setString(content);
-  text.setCharacterSize(size);
+  text.setCharacterSize(size * scale);
   text.setFillColor(color);
   text.setStyle(style);
   text.setOrigin(floor(text.getLocalBounds().width) / 2, floor(text.getLocalBounds().height) / 2);
-  text.setPosition(x, y);
+  text.setPosition(x * scale, y * scale);
 }
 
 // 更新dice的文字
@@ -342,7 +342,7 @@ void ChangeDiceText(sf::Text &text, const int dice_number) {
 void ChangeTellLocationText(sf::Text &text, const int location_index, const std::string *list_of_locations) {
   std::string location_string = "You are now at " + list_of_locations[location_index];
   text.setString(location_string);
-  text.setPosition(200, 640);
+  text.setPosition(200 * scale, 640 * scale);
 }
 
 void ChangeLocalPollsText(sf::Text &text, const Location *location) {
@@ -781,6 +781,7 @@ int main(int argc, char **argv) {
                   else if (new_location_index == 21) {
                     jail_for_sightseeing = true;
                     players[current_id]->UpdateMoney(-players[current_id]->get_money() / 2);
+                    ChangeTellPlayerAndPropertiesText(tell_player_and_properties_text, players[current_id]);
                     state = WAIT;
                   }
 
