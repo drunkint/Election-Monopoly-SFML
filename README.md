@@ -17,6 +17,7 @@ If the local support ratio is 50:50 then no one wins in that area. Add up all th
 (btw in reallity Taiwan uses another election system different from America)
 
 Flow:
+
 6. The game starts at menu. Press space to continue.
 
 7. Then a simplified version in Mandarin of the rules will pop up. Press space to continue.
