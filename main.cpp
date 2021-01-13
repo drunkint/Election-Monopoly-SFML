@@ -45,11 +45,11 @@ const int kPlayerHeight = 130 * scale;
 const int kPlayerNum = 2;
 const int kTotalRounds = 15;
 const int kLocationIndexNum = 28;  // num of total locations
-const int kStartMoney = 200000; // 一開始拿到的錢
-const int kBribeNum = 10;    // 遇到警察會回溯幾天看你有沒有賄選
-const int kMiaoliNum = 3;    // 你會在苗栗卡幾天
-const int kJailNum = 3;      // 你會在監獄卡幾天
-const int kHospitalNum = 3;  // 你會在醫院卡幾天
+const int kStartMoney = 200000;    // 一開始拿到的錢
+const int kBribeNum = 10;          // 遇到警察會回溯幾天看你有沒有賄選
+const int kMiaoliNum = 3;          // 你會在苗栗卡幾天
+const int kJailNum = 3;            // 你會在監獄卡幾天
+const int kHospitalNum = 3;        // 你會在醫院卡幾天
 
 // Const Earn Money Consts
 const int kMoneyEachRound = 200000;      // 每回合增加多少錢
@@ -739,11 +739,9 @@ int main(int argc, char **argv) {
                   players[current_id]->UpdateMoney(-kMoneyEachRound);
                   state = WAIT;
                 } else {
-                  std::cout << "dice rolled" << std::endl;
 
                   // throw the dice, update location and text
                   int dice_value = RandomDice();
-                  std::cout << dice_value << std::endl;  // 輸出到terminal裡面 方便debug
 
                   players[current_id]->UpdateLocationIndex(dice_value);
                   int new_location_index = players[current_id]->get_location_index();  // indicates the location of the player in this round
@@ -953,8 +951,6 @@ int main(int argc, char **argv) {
             mo_hei = false;
             switch (ev.key.code) {
               case sf::Keyboard::Space:
-                std::cout << "round: " << current_round + 1 << std::endl;       // 方便debug
-                std::cout << "rn is " << current_id << "'s turn" << std::endl;  // 方便debug
                 // 如果是玩家1 (有兩個玩家：玩家0 與玩家1)的回合，那麼回合++，並且兩人都獲得20萬
                 if (current_id == kPlayerNum - 1) {
                   current_round++;
@@ -976,7 +972,6 @@ int main(int argc, char **argv) {
                   if (zero == one) {
                     winner = (players[0]->get_money() > players[1]->get_money()) ? 0 : 1;
                   }
-                  std::cout << "end game, winner: " << winner << std::endl;  // 方便debug
                   winner_str = winner == 0 ? "Player One becomes the president!" : "Player Two becomes the president!";
                   BuildText(winner_text, big_font, winner_str, 60, sf::Color::White, sf::Text::Regular, 500, 800);
                   result_str = "Player One | " + std::to_string(zero) + " : " + std::to_string(one) + " | Player Two";
