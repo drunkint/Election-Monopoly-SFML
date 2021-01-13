@@ -17,14 +17,14 @@ Flow:
 7. Then a simplified version in Mandarin of the rules will pop up. Press space to continue.
 8. And the game is on! Press space for player one to roll the dice.
 9. Player one might end up on one of the 3 different kinds of Locations:
-      - City. Then we will need to choose among one of the three options:
+       City. Then we will need to choose among one of the three options:
           - Beg door to door for votes: spend 100 thousand ntd, local support rate increases by 5%~10%.
           - Give a fundraising speech: get 100 to 300 thousand ntd.
           - Bribe: spend 800 thousand, local support rate skyrockets by 30%~60%
-      - News. Then we will need to choose if we want to defame our opponent:
+       News. Then we will need to choose if we want to defame our opponent:
           - Yes: Spend 1 million, and a random city/county will 100% vote for you.
           - No: Skip
-      - Special cases. These are:
+       Special cases. These are:
           - Office of the President: get 500 thousand ntd
           - Independent Country of Miaoli: "Going abroad during COVID-19? Quarintine for 3 days"
           - NTU Hospital: Stay for 3 days
