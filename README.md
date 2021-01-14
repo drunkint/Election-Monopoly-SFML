@@ -1,5 +1,5 @@
 # Election-Monopoly-SFML
-This Election monopoly-like game aims to arouse awareness among Taiwanese Students.
+This Election monopoly-like game aims to arouse political awareness among Taiwanese Students.
 
 The following are the instructions of the game: (for the Mandarin version, please see the release notes) The game board is written in Mandarin. Don't worry if you couldn't understand though; The prompts are still written in English.
 
