@@ -2,7 +2,7 @@
 This Election monopoly-like game aims to arouse political awareness among Taiwanese Students.
 
 # Download
-Check out the release on the right. Instructions are listed there.
+Check out the release section. Instructions are listed there.
 
 # Game Instructions
 The following are the instructions of the game: (for the Mandarin version, please see the release notes) The game board is written in Mandarin. Don't worry if you couldn't understand though; The prompts are still written in English.
